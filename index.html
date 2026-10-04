@@ -11,14 +11,14 @@
 <title>갓생 다이어리</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=Gaegu:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=Gaegu:wght@400;700&family=Oswald:wght@500;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --bg:#F6F1E8;--bg2:#FFFFFF;--bg3:#ECE5D6;
   --border:rgba(43,39,34,0.08);
   --text:#2B2723;--text2:#8A8175;--text3:#B5AC9D;
   --green:#3F8F6B;--yellow:#C9923C;--red:#D6534F;--blue:#4A85C9;
-  --desk:#E6DCCB;--paper:#FBF7EF;--cover:#34503F;
+  --desk:#E6DCCB;--paper:#FBF7EF;--cover:#B3262D;--cover-ink:#7E1A1F;--band:#EFE6D5;
   --tab1:#E9A99F;--tab2:#F0CB7E;--tab3:#A5CDB0;--tab4:#A7BFE0;
   --hand:'Gaegu','Pretendard',sans-serif;
   --ring:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='24'%3E%3Ccircle cx='27' cy='12.5' r='3.2' fill='%23000' fill-opacity='.32'/%3E%3Crect x='4' y='9' width='27' height='7' rx='3.5' fill='none' stroke='%23A9842F' stroke-width='2.6'/%3E%3Crect x='4.5' y='9.3' width='26' height='6' rx='3' fill='none' stroke='%23F5DC8E' stroke-width='.9'/%3E%3C/svg%3E");
@@ -46,19 +46,35 @@ body{background:var(--desk);color:var(--text);font-family:'Pretendard',sans-seri
 .close-book{border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;padding:4px 10px;border-radius:20px;}
 
 /* ===== 표지 ===== */
-.cover-screen{position:fixed;inset:0;z-index:9000;background:var(--desk);display:flex;align-items:center;justify-content:center;padding:24px 58px 24px 44px;perspective:1800px;cursor:pointer;
+body.cover-on{overflow:hidden;}
+.cover-screen{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:32px 60px 32px 46px;perspective:1800px;cursor:pointer;
+  background:radial-gradient(120% 90% at 50% 38%,#F5F1EB 0%,#E6DCCB 100%);
   transition:opacity 0.35s ease,visibility 0s 0s;}
 .cover-screen.open{opacity:0;visibility:hidden;pointer-events:none;transition:opacity 0.45s ease 0.45s,visibility 0s 0.9s;}
-.cover-book{position:relative;width:min(380px,100%,calc((100vh - 64px)*0.75));aspect-ratio:3/4;transform-origin:left center;transition:transform 0.85s cubic-bezier(0.6,0.05,0.3,1);}
+.cover-book{position:relative;container-type:inline-size;width:min(420px,100%,calc((100vh - 120px)*0.7));aspect-ratio:7/10;transform-origin:left center;transform:rotate(-3deg);
+  transition:transform 0.85s cubic-bezier(0.6,0.05,0.3,1);}
+@media(hover:hover){.cover-screen:hover .cover-book{transform:rotate(0deg);}}
 .cover-screen.open .cover-book{transform:rotateY(-110deg);}
-.cover-face{position:absolute;inset:0;z-index:2;border-radius:8px 18px 18px 8px;display:flex;flex-direction:column;align-items:center;padding:24% 13% 0 17%;
-  background:repeating-linear-gradient(0deg,rgba(255,255,255,0.035) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(0,0,0,0.05) 0 1px,transparent 1px 3px),var(--cover);
-  box-shadow:inset 12px 0 18px -12px rgba(0,0,0,0.45),inset 0 0 0 1px rgba(255,255,255,0.06),6px 6px 0 -2px #F3ECDF,6px 6px 0 -1px rgba(0,0,0,0.1),0 28px 50px -22px rgba(30,25,20,0.6);}
-.cover-label{width:100%;background:var(--paper);border-radius:6px;padding:24px 16px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.25);}
-.cover-title{font-family:var(--hand);font-size:clamp(28px,8vw,40px);font-weight:700;color:var(--text);line-height:1.1;word-break:keep-all;}
-.cover-line{height:2px;background:var(--text);opacity:0.7;margin:12px 6% 10px;border-radius:2px;}
-.cover-sub{font-size:11px;color:var(--text2);letter-spacing:0.25em;}
-.cover-hint{margin-top:auto;margin-bottom:9%;font-family:var(--hand);font-size:17px;color:rgba(251,247,239,0.55);}
+.cover-face{position:absolute;inset:0;z-index:2;border-radius:6px 14px 14px 6px;overflow:hidden;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(90deg,rgba(0,0,0,0.3) 0,rgba(0,0,0,0.08) 7%,transparent 13%),
+    linear-gradient(160deg,rgba(255,255,255,0.12) 0%,transparent 40%,rgba(0,0,0,0.12) 100%),var(--cover);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08),inset -3px -3px 6px rgba(0,0,0,0.2),inset 2px 2px 4px rgba(255,255,255,0.12),
+    5px 5px 0 -1px #F3ECDF,5px 5px 0 0 rgba(0,0,0,0.12),0 32px 50px -24px rgba(70,12,12,0.6);}
+.cover-emboss{position:absolute;top:9%;left:17%;font-family:'Oswald',sans-serif;font-weight:500;font-size:3cqw;letter-spacing:0.35em;color:rgba(0,0,0,0.24);text-shadow:0 1px 0 rgba(255,255,255,0.14);}
+.cover-band{position:absolute;left:0;right:0;top:49%;height:32%;background:linear-gradient(180deg,#F3EBDC,var(--band) 60%,#E6DBC6);
+  box-shadow:0 1px 2px rgba(0,0,0,0.18),0 -1px 1px rgba(0,0,0,0.08),inset 10px 0 10px -10px rgba(0,0,0,0.3);
+  display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 23% 0 15%;text-align:center;}
+.band-logo{font-family:'Oswald',sans-serif;font-weight:700;font-size:9cqw;line-height:1;letter-spacing:0.02em;color:var(--cover-ink);}
+.band-sub{font-size:3.3cqw;font-weight:700;color:var(--cover-ink);margin-top:0.8cqw;letter-spacing:0.1em;}
+.band-rule{align-self:stretch;height:1.4cqw;border-top:0.5cqw solid #3A2A2A;border-bottom:0.25cqw solid #3A2A2A;margin:2.6cqw 0 2cqw;}
+.band-name{font-size:3.8cqw;font-weight:700;color:var(--text);}
+.band-en{font-size:2.4cqw;font-weight:600;letter-spacing:0.18em;color:var(--text);margin-top:0.4cqw;}
+.band-rule2{align-self:stretch;border-top:0.3cqw solid #3A2A2A;margin:2cqw 0 1.6cqw;}
+.band-spec{font-size:2.4cqw;color:#6B625A;letter-spacing:0.05em;}
+.cover-elastic{position:absolute;z-index:4;top:-3px;bottom:-3px;right:9%;width:4.4cqw;border-radius:2px;
+  background:linear-gradient(90deg,#140D0D,#3B2B2B 45%,#1E1515 70%,#100A0A);box-shadow:-2px 0 5px rgba(0,0,0,0.35),2px 0 3px rgba(0,0,0,0.2);}
+.cover-hint{position:absolute;left:15%;right:23%;bottom:7%;text-align:center;font-family:var(--hand);font-size:max(14px,4.4cqw);color:rgba(255,236,228,0.7);}
 .cover-spiral{position:absolute;z-index:3;left:-22px;top:4%;bottom:4%;width:44px;background:var(--ring) repeat-y 0 0/44px 26px;}
 .cover-tabs{position:absolute;z-index:1;top:13%;right:-40px;display:flex;flex-direction:column;gap:8px;}
 
@@ -130,7 +146,7 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
 @media(max-width:860px){.two-col{grid-template-columns:1fr 1fr;}}
 </style>
 </head>
-<body>
+<body class="cover-on">
 
 <!-- 비밀번호 잠금 -->
 <div id="lock-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#E6DCCB;z-index:99999;display:flex;align-items:center;justify-content:center;">
@@ -142,7 +158,7 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
       style="width:100%;background:#FFFFFF;border:1px solid rgba(43,39,34,0.15);border-radius:12px;padding:14px 16px;color:#2B2723;font-size:16px;font-family:'Pretendard',sans-serif;outline:none;text-align:center;margin-bottom:12px;"
       onkeydown="if(event.key==='Enter')checkPassword()">
     <button onclick="checkPassword()"
-      style="width:100%;background:#3F8F6B;color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;">
+      style="width:100%;background:#B3262D;color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;">
       입장하기
     </button>
     <div id="pw-error" style="color:#D6534F;font-size:13px;margin-top:12px;display:none;">비밀번호가 틀렸어요 🔒</div>
@@ -154,12 +170,18 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
   <div class="cover-book">
     <div class="cover-spiral"></div>
     <div class="cover-face">
-      <div class="cover-label">
-        <div class="cover-title" id="cover-title"></div>
-        <div class="cover-line"></div>
-        <div class="cover-sub" id="cover-year"></div>
+      <div class="cover-emboss" id="cover-year"></div>
+      <div class="cover-band">
+        <div class="band-logo">GODSAENG</div>
+        <div class="band-sub" id="cover-title"></div>
+        <div class="band-rule"></div>
+        <div class="band-name">다이어리 노트</div>
+        <div class="band-en">DIARY NOTE</div>
+        <div class="band-rule2"></div>
+        <div class="band-spec">루틴 | 지출 | 월별 리뷰</div>
       </div>
       <div class="cover-hint">눌러서 펼치기 →</div>
+      <div class="cover-elastic"></div>
     </div>
     <div class="cover-tabs">
       <button class="bookmark" style="--c:var(--tab1)" onclick="event.stopPropagation();openBook('dashboard')">대시보드</button>
@@ -440,7 +462,7 @@ document.getElementById('header-title').textContent=DIARY_TITLE;
 
 // ===== 날짜 =====
 var now=new Date();
-document.getElementById('cover-year').textContent=now.getFullYear()+' DIARY';
+document.getElementById('cover-year').textContent=now.getFullYear();
 document.getElementById('today-date').textContent=now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일';
 
 // ===== 루틴 데이터 =====
@@ -861,10 +883,12 @@ function showTab(name){
 function openBook(tab){
   if(tab) showTab(tab);
   document.getElementById('cover').classList.add('open');
+  document.body.classList.remove('cover-on');
 }
 function closeBook(){
   window.scrollTo(0,0);
   document.getElementById('cover').classList.remove('open');
+  document.body.classList.add('cover-on');
 }
 
 // ===== 완료 메시지 =====
