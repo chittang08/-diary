@@ -5,29 +5,73 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="갓생 트래커">
+<meta name="apple-mobile-web-app-title" content="갓생 다이어리">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#F6F1E8">
-<title>갓생 루틴 트래커</title>
+<meta name="theme-color" content="#E6DCCB">
+<title>갓생 다이어리</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=Gaegu:wght@400;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --bg:#F6F1E8;--bg2:#FFFFFF;--bg3:#ECE5D6;
   --border:rgba(43,39,34,0.08);
   --text:#2B2723;--text2:#8A8175;--text3:#B5AC9D;
   --green:#3F8F6B;--yellow:#C9923C;--red:#D6534F;--blue:#4A85C9;
+  --desk:#E6DCCB;--paper:#FBF7EF;--cover:#34503F;
+  --tab1:#E9A99F;--tab2:#F0CB7E;--tab3:#A5CDB0;--tab4:#A7BFE0;
+  --hand:'Gaegu','Pretendard',sans-serif;
+  --ring:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='24'%3E%3Ccircle cx='27' cy='12.5' r='3.2' fill='%23000' fill-opacity='.32'/%3E%3Crect x='4' y='9' width='27' height='7' rx='3.5' fill='none' stroke='%23A9842F' stroke-width='2.6'/%3E%3Crect x='4.5' y='9.3' width='26' height='6' rx='3' fill='none' stroke='%23F5DC8E' stroke-width='.9'/%3E%3C/svg%3E");
 }
-body{background:var(--bg);color:var(--text);font-family:'Pretendard',sans-serif;min-height:100vh;-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top);}
-.container{max-width:900px;margin:0 auto;padding:20px 16px;}
-.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-.header-title{font-size:18px;font-weight:700;}
-.header-date{font-size:12px;color:var(--text2);margin-top:2px;}
+body{background:var(--desk);color:var(--text);font-family:'Pretendard',sans-serif;min-height:100vh;-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top);}
+.container{max-width:960px;margin:0 auto;padding:28px 54px 40px 32px;}
+
+/* ===== 다이어리 본문 ===== */
+.book{position:relative;}
+.paper{position:relative;z-index:2;background:var(--paper);border-radius:6px 14px 14px 6px;padding:22px 22px 30px 38px;min-height:calc(100vh - 68px);
+  box-shadow:4px 4px 0 -1px #F1EADD,4px 4px 0 0 rgba(43,39,34,0.08),8px 8px 0 -1px #ECE3D3,8px 8px 0 0 rgba(43,39,34,0.07),0 22px 44px -20px rgba(43,39,34,0.4);}
+.spiral{position:absolute;z-index:3;left:-20px;top:18px;bottom:18px;width:40px;background:var(--ring) repeat-y 0 0/40px 24px;pointer-events:none;}
+.bookmarks{position:absolute;z-index:1;top:76px;right:-40px;display:flex;flex-direction:column;gap:6px;}
+.bookmark{writing-mode:vertical-rl;width:44px;padding:16px 0 16px 10px;border:none;border-radius:0 10px 10px 0;background:var(--c);
+  font-family:var(--hand);font-size:16px;font-weight:700;letter-spacing:0.1em;color:rgba(43,39,34,0.62);
+  box-shadow:inset 8px 0 8px -6px rgba(0,0,0,0.18);transform:translateX(-6px);transition:transform 0.25s ease,color 0.2s;}
+.bookmark:hover{transform:translateX(-2px);}
+.bookmark.active{transform:translateX(1px);color:var(--text);box-shadow:inset 8px 0 8px -6px rgba(0,0,0,0.12),3px 3px 8px -2px rgba(43,39,34,0.25);}
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:14px;margin-bottom:20px;border-bottom:1.5px dashed rgba(43,39,34,0.15);}
+.header-title{font-family:var(--hand);font-size:28px;font-weight:700;line-height:1.1;}
+.header-chapter{font-family:var(--hand);font-size:17px;color:var(--text2);font-weight:400;margin-left:6px;}
+.header-date{font-size:12px;color:var(--text2);margin-top:4px;}
+.header-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .score-badge{background:var(--green);color:white;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;}
-.tabs{display:flex;gap:2px;margin-bottom:20px;background:var(--bg2);border-radius:10px;padding:4px;}
-.tab{flex:1;padding:9px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--text2);border-radius:8px;transition:all 0.2s;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-color:transparent;}
-.tab.active{background:var(--bg3);color:var(--text);}
+.close-book{border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;padding:4px 10px;border-radius:20px;}
+
+/* ===== 표지 ===== */
+.cover-screen{position:fixed;inset:0;z-index:9000;background:var(--desk);display:flex;align-items:center;justify-content:center;padding:24px 58px 24px 44px;perspective:1800px;cursor:pointer;
+  transition:opacity 0.35s ease,visibility 0s 0s;}
+.cover-screen.open{opacity:0;visibility:hidden;pointer-events:none;transition:opacity 0.45s ease 0.45s,visibility 0s 0.9s;}
+.cover-book{position:relative;width:min(380px,100%,calc((100vh - 64px)*0.75));aspect-ratio:3/4;transform-origin:left center;transition:transform 0.85s cubic-bezier(0.6,0.05,0.3,1);}
+.cover-screen.open .cover-book{transform:rotateY(-110deg);}
+.cover-face{position:absolute;inset:0;z-index:2;border-radius:8px 18px 18px 8px;display:flex;flex-direction:column;align-items:center;padding:24% 13% 0 17%;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,0.035) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(0,0,0,0.05) 0 1px,transparent 1px 3px),var(--cover);
+  box-shadow:inset 12px 0 18px -12px rgba(0,0,0,0.45),inset 0 0 0 1px rgba(255,255,255,0.06),6px 6px 0 -2px #F3ECDF,6px 6px 0 -1px rgba(0,0,0,0.1),0 28px 50px -22px rgba(30,25,20,0.6);}
+.cover-label{width:100%;background:var(--paper);border-radius:6px;padding:24px 16px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.25);}
+.cover-title{font-family:var(--hand);font-size:clamp(28px,8vw,40px);font-weight:700;color:var(--text);line-height:1.1;word-break:keep-all;}
+.cover-line{height:2px;background:var(--text);opacity:0.7;margin:12px 6% 10px;border-radius:2px;}
+.cover-sub{font-size:11px;color:var(--text2);letter-spacing:0.25em;}
+.cover-hint{margin-top:auto;margin-bottom:9%;font-family:var(--hand);font-size:17px;color:rgba(251,247,239,0.55);}
+.cover-spiral{position:absolute;z-index:3;left:-22px;top:4%;bottom:4%;width:44px;background:var(--ring) repeat-y 0 0/44px 26px;}
+.cover-tabs{position:absolute;z-index:1;top:13%;right:-40px;display:flex;flex-direction:column;gap:8px;}
+
+@media(max-width:500px){
+  .container{padding:18px 42px 32px 26px;}
+  .paper{padding:18px 14px 24px 28px;}
+  .bookmarks{right:-34px;top:64px;}
+  .cover-tabs{right:-34px;}
+  .bookmark{width:38px;font-size:14px;padding:12px 0 12px 10px;}
+  .header-title{font-size:24px;}
+  .header-chapter{display:block;margin:2px 0 0;font-size:15px;}
+  .cover-screen{padding:24px 48px 24px 36px;}
+}
 .page{display:none;}.page.active{display:block;}
 .metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
 @media(min-width:600px){.metric-grid{grid-template-columns:repeat(4,1fr);}}
@@ -38,7 +82,7 @@ body{background:var(--bg);color:var(--text);font-family:'Pretendard',sans-serif;
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;}
 .section-title{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:0.08em;}
 .dash-grid{display:grid;grid-template-columns:1fr;gap:12px;}
-@media(min-width:600px){.dash-grid{grid-template-columns:200px 1fr;}}
+@media(min-width:600px){.dash-grid{grid-template-columns:200px minmax(0,1fr);}}
 .checklist-panel{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;}
 .check-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);-webkit-tap-highlight-color:transparent;}
 .check-row:last-of-type{border-bottom:none;}
@@ -47,7 +91,7 @@ body{background:var(--bg);color:var(--text);font-family:'Pretendard',sans-serif;
 .check-label{font-size:13px;color:var(--text);flex:1;transition:all 0.2s;}
 .check-label.done{color:var(--text3);text-decoration:line-through;}
 .add-btn{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;border:1px dashed var(--text3);border-radius:8px;padding:10px 14px;background:none;margin-top:10px;width:100%;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-color:transparent;}
-.right-panel{display:flex;flex-direction:column;gap:12px;}
+.right-panel{display:flex;flex-direction:column;gap:12px;min-width:0;}
 .pct-big{font-size:30px;font-weight:700;text-align:center;color:var(--text);}
 .pct-sub-text{font-size:11px;color:var(--text2);text-align:center;margin-bottom:6px;}
 .heatmap-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
@@ -89,10 +133,10 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
 <body>
 
 <!-- 비밀번호 잠금 -->
-<div id="lock-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#F6F1E8;z-index:99999;display:flex;align-items:center;justify-content:center;">
+<div id="lock-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#E6DCCB;z-index:99999;display:flex;align-items:center;justify-content:center;">
   <div style="text-align:center;padding:40px 24px;width:100%;max-width:360px;">
-    <div style="font-size:48px;margin-bottom:16px;">🔥</div>
-    <div style="font-size:22px;font-weight:700;color:#2B2723;margin-bottom:8px;">갓생 루틴 트래커</div>
+    <div style="font-size:48px;margin-bottom:16px;">📔</div>
+    <div style="font-family:'Gaegu',sans-serif;font-size:30px;font-weight:700;color:#2B2723;margin-bottom:8px;">갓생 다이어리</div>
     <div style="font-size:13px;color:#8A8175;margin-bottom:32px;">비밀번호를 입력해주세요</div>
     <input id="pw-input" type="password" placeholder="비밀번호"
       style="width:100%;background:#FFFFFF;border:1px solid rgba(43,39,34,0.15);border-radius:12px;padding:14px 16px;color:#2B2723;font-size:16px;font-family:'Pretendard',sans-serif;outline:none;text-align:center;margin-bottom:12px;"
@@ -105,20 +149,46 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
   </div>
 </div>
 
+<!-- 표지 -->
+<div id="cover" class="cover-screen" onclick="openBook()">
+  <div class="cover-book">
+    <div class="cover-spiral"></div>
+    <div class="cover-face">
+      <div class="cover-label">
+        <div class="cover-title" id="cover-title"></div>
+        <div class="cover-line"></div>
+        <div class="cover-sub" id="cover-year"></div>
+      </div>
+      <div class="cover-hint">눌러서 펼치기 →</div>
+    </div>
+    <div class="cover-tabs">
+      <button class="bookmark" style="--c:var(--tab1)" onclick="event.stopPropagation();openBook('dashboard')">대시보드</button>
+      <button class="bookmark" style="--c:var(--tab2)" onclick="event.stopPropagation();openBook('routine')">루틴</button>
+      <button class="bookmark" style="--c:var(--tab3)" onclick="event.stopPropagation();openBook('expense')">지출</button>
+      <button class="bookmark" style="--c:var(--tab4)" onclick="event.stopPropagation();openBook('review')">월별 리뷰</button>
+    </div>
+  </div>
+</div>
+
 <div class="container">
+ <div class="book">
+  <div class="spiral"></div>
+  <nav class="bookmarks">
+    <button class="bookmark active" data-tab="dashboard" style="--c:var(--tab1)" onclick="showTab('dashboard')">대시보드</button>
+    <button class="bookmark" data-tab="routine" style="--c:var(--tab2)" onclick="showTab('routine')">루틴</button>
+    <button class="bookmark" data-tab="expense" style="--c:var(--tab3)" onclick="showTab('expense')">지출</button>
+    <button class="bookmark" data-tab="review" style="--c:var(--tab4)" onclick="showTab('review')">월별 리뷰</button>
+  </nav>
+  <div class="paper">
   <div class="header">
     <div>
-      <div class="header-title">🔥 갓생 루틴 트래커</div>
+      <div class="header-title"><span id="header-title"></span><span class="header-chapter" id="header-chapter">대시보드</span></div>
       <div class="header-date" id="today-date"></div>
     </div>
-    <div class="score-badge" id="score-badge">—</div>
-  </div>
-
-  <div class="tabs">
-    <button class="tab active" onclick="showTab('dashboard',this)">대시보드</button>
-    <button class="tab" onclick="showTab('routine',this)">루틴</button>
-    <button class="tab" onclick="showTab('expense',this)">지출</button>
-    <button class="tab" onclick="showTab('review',this)">월별 리뷰</button>
+    <div class="header-right">
+      <div class="score-badge" id="score-badge">—</div>
+      <button class="close-book" onclick="closeBook()">📕 표지</button>
+    </div>
   </div>
 
   <!-- 대시보드 -->
@@ -312,6 +382,8 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
     </div>
     <div class="card"><div class="section-title">다음 달 목표</div><textarea id="memo-next" placeholder="다음 달엔 이걸 해보자!"></textarea></div>
   </div>
+  </div>
+ </div>
 </div>
 
 <script>
@@ -361,8 +433,14 @@ function checkPassword(){
   }
 }
 
+// ===== 다이어리 제목 =====
+var DIARY_TITLE='갓생 다이어리';
+document.getElementById('cover-title').textContent=DIARY_TITLE;
+document.getElementById('header-title').textContent=DIARY_TITLE;
+
 // ===== 날짜 =====
 var now=new Date();
+document.getElementById('cover-year').textContent=now.getFullYear()+' DIARY';
 document.getElementById('today-date').textContent=now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일';
 
 // ===== 루틴 데이터 =====
@@ -768,11 +846,25 @@ function addRoutine(){
 }
 
 // ===== 탭 =====
-function showTab(name,btn){
+function showTab(name){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.bookmarks .bookmark').forEach(function(t){
+    var on=t.getAttribute('data-tab')===name;
+    t.classList.toggle('active',on);
+    if(on) document.getElementById('header-chapter').textContent=t.textContent;
+  });
   document.getElementById('tab-'+name).classList.add('active');
-  btn.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ===== 표지 =====
+function openBook(tab){
+  if(tab) showTab(tab);
+  document.getElementById('cover').classList.add('open');
+}
+function closeBook(){
+  window.scrollTo(0,0);
+  document.getElementById('cover').classList.remove('open');
 }
 
 // ===== 완료 메시지 =====
