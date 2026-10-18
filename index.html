@@ -84,10 +84,13 @@ body.cover-on{overflow:hidden;}
   .cover-screen{padding:24px 48px 24px 36px;}
 }
 .page{display:none;}.page.active{display:block;}
-.page.turn-next{animation:turnNext 0.35s ease;}
-.page.turn-prev{animation:turnPrev 0.35s ease;}
-@keyframes turnNext{from{opacity:0;transform:translateX(28px);}to{opacity:1;transform:none;}}
-@keyframes turnPrev{from{opacity:0;transform:translateX(-28px);}to{opacity:1;transform:none;}}
+.flip-stage{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;}
+.flip-sheet{position:absolute;transform-origin:left center;transform-style:preserve-3d;border-radius:6px 14px 14px 6px;will-change:transform,opacity;}
+.flip-face{position:absolute;inset:0;border-radius:inherit;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;}
+.flip-face.front{background:linear-gradient(90deg,rgba(43,39,34,0.07),transparent 9%),var(--paper);box-shadow:0 14px 34px -12px rgba(43,39,34,0.4);}
+.flip-face.back{transform:rotateY(180deg);background:linear-gradient(270deg,rgba(43,39,34,0.09),transparent 12%),#F3ECDF;box-shadow:0 14px 34px -12px rgba(43,39,34,0.4);}
+.flip-shade{position:absolute;inset:0;opacity:0;background:linear-gradient(90deg,rgba(43,39,34,0) 30%,rgba(43,39,34,0.22));}
+.flip-face.back .flip-shade{background:linear-gradient(270deg,rgba(43,39,34,0) 30%,rgba(43,39,34,0.2));}
 .page-foot{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:22px;font-family:var(--hand);font-size:16px;color:var(--text3);user-select:none;}
 .metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
 @media(min-width:600px){.metric-grid{grid-template-columns:repeat(4,1fr);}}
@@ -174,10 +177,10 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
  <div class="book">
   <div class="spiral"></div>
   <nav class="bookmarks">
-    <button class="bookmark active" data-tab="dashboard" style="--c:var(--tab1)" onclick="showTab('dashboard')">대시보드</button>
-    <button class="bookmark" data-tab="routine" style="--c:var(--tab2)" onclick="showTab('routine')">루틴</button>
-    <button class="bookmark" data-tab="expense" style="--c:var(--tab3)" onclick="showTab('expense')">지출</button>
-    <button class="bookmark" data-tab="review" style="--c:var(--tab4)" onclick="showTab('review')">월별 리뷰</button>
+    <button class="bookmark active" data-tab="dashboard" style="--c:var(--tab1)" onclick="flipTo('dashboard')">대시보드</button>
+    <button class="bookmark" data-tab="routine" style="--c:var(--tab2)" onclick="flipTo('routine')">루틴</button>
+    <button class="bookmark" data-tab="expense" style="--c:var(--tab3)" onclick="flipTo('expense')">지출</button>
+    <button class="bookmark" data-tab="review" style="--c:var(--tab4)" onclick="flipTo('review')">월별 리뷰</button>
   </nav>
   <div class="paper">
   <div class="header">
@@ -804,32 +807,80 @@ function addRoutine(){
 var PAGE_ORDER=['dashboard','routine','expense','review'];
 var currentTab='dashboard';
 
-function showTab(name,dir){
-  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active','turn-next','turn-prev');});
+function showTab(name){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.bookmarks .bookmark').forEach(function(t){
     var on=t.getAttribute('data-tab')===name;
     t.classList.toggle('active',on);
     if(on) document.getElementById('header-chapter').textContent=t.textContent;
   });
-  if(!dir) dir=PAGE_ORDER.indexOf(name)<PAGE_ORDER.indexOf(currentTab)?-1:1;
-  var page=document.getElementById('tab-'+name);
-  page.classList.add('active',dir<0?'turn-prev':'turn-next');
+  document.getElementById('tab-'+name).classList.add('active');
   currentTab=name;
   document.getElementById('page-num').textContent=(PAGE_ORDER.indexOf(name)+1)+' / '+PAGE_ORDER.length;
   window.scrollTo(0,0);
 }
 
+// ===== 종이 넘기기 효과 =====
+// 앞으로: 빈 종이가 페이지를 덮은 뒤 왼쪽(스프링 쪽)으로 넘어가며 새 페이지를 보여줌
+// 뒤로: 넘어갔던 종이가 스프링 쪽에서 되돌아와 덮은 뒤 사라지며 이전 페이지를 보여줌
+var flipping=false;
+function flipTo(name){
+  if(flipping||name===currentTab) return;
+  var dir=PAGE_ORDER.indexOf(name)>PAGE_ORDER.indexOf(currentTab)?1:-1;
+  if(!Element.prototype.animate||window.matchMedia('(prefers-reduced-motion: reduce)').matches){showTab(name);return;}
+  flipping=true;
+
+  var stage=document.createElement('div');
+  stage.className='flip-stage';
+  var sheet=document.createElement('div');
+  sheet.className='flip-sheet';
+  sheet.innerHTML='<div class="flip-face front"><div class="flip-shade"></div></div><div class="flip-face back"><div class="flip-shade"></div></div>';
+  stage.appendChild(sheet);
+  document.body.appendChild(stage);
+  var shades=sheet.querySelectorAll('.flip-shade');
+
+  function place(){
+    var r=document.querySelector('.paper').getBoundingClientRect();
+    var top=Math.max(r.top,0),bottom=Math.min(r.bottom,window.innerHeight);
+    sheet.style.left=r.left+'px';sheet.style.top=top+'px';
+    sheet.style.width=r.width+'px';sheet.style.height=(bottom-top)+'px';
+    stage.style.perspective=Math.round(r.width*2.4)+'px';
+    stage.style.perspectiveOrigin=r.left+'px 50%';
+  }
+  function shade(duration){
+    shades.forEach(function(s){s.animate([{opacity:0},{opacity:1,offset:0.5},{opacity:0}],{duration:duration,fill:'forwards'});});
+  }
+  function finish(){stage.remove();flipping=false;}
+  var turnEase='cubic-bezier(0.45,0.05,0.35,1)';
+  place();
+
+  if(dir>0){
+    sheet.animate([{opacity:0},{opacity:1}],{duration:170,easing:'ease-out',fill:'forwards'}).onfinish=function(){
+      showTab(name);place();
+      shade(700);
+      sheet.animate([{transform:'rotateY(0deg)',opacity:1},{opacity:1,offset:0.8},{transform:'rotateY(-180deg)',opacity:0}],{duration:700,easing:turnEase,fill:'forwards'}).onfinish=finish;
+    };
+  } else {
+    shade(650);
+    sheet.animate([{transform:'rotateY(-180deg)',opacity:0},{opacity:1,offset:0.2},{transform:'rotateY(0deg)',opacity:1}],{duration:650,easing:turnEase,fill:'forwards'}).onfinish=function(){
+      showTab(name);place();
+      sheet.animate([{opacity:1},{opacity:0}],{duration:240,easing:'ease-in',fill:'forwards'}).onfinish=finish;
+    };
+  }
+}
+
 // ===== 페이지 넘기기 (화면 왼쪽 = 이전, 오른쪽 = 다음) =====
 function isCoverShown(){return !document.getElementById('cover').classList.contains('open');}
 function goNext(){
+  if(flipping) return;
   if(isCoverShown()){openBook();return;}
   var i=PAGE_ORDER.indexOf(currentTab);
-  if(i<PAGE_ORDER.length-1) showTab(PAGE_ORDER[i+1],1);
+  if(i<PAGE_ORDER.length-1) flipTo(PAGE_ORDER[i+1]);
 }
 function goPrev(){
-  if(isCoverShown()) return;
+  if(flipping||isCoverShown()) return;
   var i=PAGE_ORDER.indexOf(currentTab);
-  if(i>0) showTab(PAGE_ORDER[i-1],-1);
+  if(i>0) flipTo(PAGE_ORDER[i-1]);
   else closeBook();
 }
 var TAP_IGNORE='button,input,textarea,select,a,label,canvas,[onclick],.check-row,.expense-row,.heatmap-wrap,.bookmark';
