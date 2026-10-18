@@ -833,8 +833,8 @@ function goPrev(){
   else closeBook();
 }
 var TAP_IGNORE='button,input,textarea,select,a,label,canvas,[onclick],.check-row,.expense-row,.heatmap-wrap,.bookmark';
-document.querySelector('.container').addEventListener('click',function(e){
-  if(isCoverShown()) return;
+document.addEventListener('click',function(e){
+  if(isCoverShown()||e.target.closest('#cover')) return;
   if(e.target.closest(TAP_IGNORE)) return;
   var sel=window.getSelection&&window.getSelection().toString();
   if(sel) return;
