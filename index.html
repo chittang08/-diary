@@ -69,7 +69,7 @@ body.cover-on{overflow:hidden;}
   font-family:'Oswald',sans-serif;font-weight:500;font-size:3cqw;letter-spacing:0.4em;color:var(--cover-ink);}
 .cover-elastic{position:absolute;z-index:4;top:-3px;bottom:-3px;right:9%;width:4.4cqw;border-radius:2px;
   background:linear-gradient(90deg,#140D0D,#3B2B2B 45%,#1E1515 70%,#100A0A);box-shadow:-2px 0 5px rgba(0,0,0,0.35),2px 0 3px rgba(0,0,0,0.2);}
-.cover-hint{position:absolute;left:15%;right:23%;bottom:7%;text-align:center;font-family:var(--hand);font-size:max(14px,4.4cqw);color:rgba(255,236,228,0.7);}
+.cover-hint{position:absolute;left:50%;right:20%;bottom:7%;text-align:right;font-family:var(--hand);font-size:max(14px,4.4cqw);color:rgba(255,236,228,0.7);}
 .cover-spiral{position:absolute;z-index:3;left:-22px;top:4%;bottom:4%;width:44px;background:var(--ring) repeat-y 0 0/44px 26px;}
 .cover-tabs{position:absolute;z-index:1;top:13%;right:-40px;display:flex;flex-direction:column;gap:8px;}
 
@@ -84,6 +84,11 @@ body.cover-on{overflow:hidden;}
   .cover-screen{padding:24px 48px 24px 36px;}
 }
 .page{display:none;}.page.active{display:block;}
+.page.turn-next{animation:turnNext 0.35s ease;}
+.page.turn-prev{animation:turnPrev 0.35s ease;}
+@keyframes turnNext{from{opacity:0;transform:translateX(28px);}to{opacity:1;transform:none;}}
+@keyframes turnPrev{from{opacity:0;transform:translateX(-28px);}to{opacity:1;transform:none;}}
+.page-foot{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:22px;font-family:var(--hand);font-size:16px;color:var(--text3);user-select:none;}
 .metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
 @media(min-width:600px){.metric-grid{grid-template-columns:repeat(4,1fr);}}
 .metric{background:var(--bg2);border-radius:12px;padding:14px;border:1px solid var(--border);}
@@ -144,7 +149,7 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
 <body class="cover-on">
 
 <!-- 표지 -->
-<div id="cover" class="cover-screen" onclick="openBook()">
+<div id="cover" class="cover-screen" onclick="if(event.clientX>=window.innerWidth/2)openBook()">
   <div class="cover-book">
     <div class="cover-spiral"></div>
     <div class="cover-face">
@@ -377,6 +382,7 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
     </div>
     <div class="card"><div class="section-title">다음 달 목표</div><textarea id="memo-next" placeholder="다음 달엔 이걸 해보자!"></textarea></div>
   </div>
+  <div class="page-foot"><span>‹</span><span id="page-num">1 / 4</span><span>›</span></div>
   </div>
  </div>
 </div>
@@ -795,16 +801,51 @@ function addRoutine(){
 }
 
 // ===== 탭 =====
-function showTab(name){
-  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+var PAGE_ORDER=['dashboard','routine','expense','review'];
+var currentTab='dashboard';
+
+function showTab(name,dir){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active','turn-next','turn-prev');});
   document.querySelectorAll('.bookmarks .bookmark').forEach(function(t){
     var on=t.getAttribute('data-tab')===name;
     t.classList.toggle('active',on);
     if(on) document.getElementById('header-chapter').textContent=t.textContent;
   });
-  document.getElementById('tab-'+name).classList.add('active');
+  if(!dir) dir=PAGE_ORDER.indexOf(name)<PAGE_ORDER.indexOf(currentTab)?-1:1;
+  var page=document.getElementById('tab-'+name);
+  page.classList.add('active',dir<0?'turn-prev':'turn-next');
+  currentTab=name;
+  document.getElementById('page-num').textContent=(PAGE_ORDER.indexOf(name)+1)+' / '+PAGE_ORDER.length;
   window.scrollTo(0,0);
 }
+
+// ===== 페이지 넘기기 (화면 왼쪽 = 이전, 오른쪽 = 다음) =====
+function isCoverShown(){return !document.getElementById('cover').classList.contains('open');}
+function goNext(){
+  if(isCoverShown()){openBook();return;}
+  var i=PAGE_ORDER.indexOf(currentTab);
+  if(i<PAGE_ORDER.length-1) showTab(PAGE_ORDER[i+1],1);
+}
+function goPrev(){
+  if(isCoverShown()) return;
+  var i=PAGE_ORDER.indexOf(currentTab);
+  if(i>0) showTab(PAGE_ORDER[i-1],-1);
+  else closeBook();
+}
+var TAP_IGNORE='button,input,textarea,select,a,label,canvas,[onclick],.check-row,.expense-row,.heatmap-wrap,.bookmark';
+document.querySelector('.container').addEventListener('click',function(e){
+  if(isCoverShown()) return;
+  if(e.target.closest(TAP_IGNORE)) return;
+  var sel=window.getSelection&&window.getSelection().toString();
+  if(sel) return;
+  if(e.clientX<window.innerWidth/2) goPrev(); else goNext();
+});
+document.addEventListener('keydown',function(e){
+  var tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='textarea'||tag==='select') return;
+  if(e.key==='ArrowRight') goNext();
+  else if(e.key==='ArrowLeft') goPrev();
+});
 
 // ===== 표지 =====
 function openBook(tab){
