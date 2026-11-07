@@ -19,7 +19,7 @@
   --text:#2B2723;--text2:#8A8175;--text3:#B5AC9D;
   --green:#3F8F6B;--yellow:#C9923C;--red:#D6534F;--blue:#4A85C9;
   --desk:#E6DCCB;--paper:#FBF7EF;--cover:#B3262D;--cover-ink:#7E1A1F;--band:#EFE6D5;
-  --tab1:#E9A99F;--tab2:#F0CB7E;--tab3:#A5CDB0;--tab4:#A7BFE0;
+  --tab1:#F7CFD8;
   --hand:'Gaegu','Pretendard',sans-serif;
   --ring:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='24'%3E%3Ccircle cx='27' cy='12.5' r='3.2' fill='%23000' fill-opacity='.32'/%3E%3Crect x='4' y='9' width='27' height='7' rx='3.5' fill='none' stroke='%23A9842F' stroke-width='2.6'/%3E%3Crect x='4.5' y='9.3' width='26' height='6' rx='3' fill='none' stroke='%23F5DC8E' stroke-width='.9'/%3E%3C/svg%3E");
 }
@@ -168,10 +168,7 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
       <div class="cover-elastic"></div>
     </div>
     <div class="cover-tabs">
-      <button class="bookmark" style="--c:var(--tab1)" onclick="event.stopPropagation();openBook('dashboard')">대시보드</button>
-      <button class="bookmark" style="--c:var(--tab2)" onclick="event.stopPropagation();openBook('routine')">루틴</button>
-      <button class="bookmark" style="--c:var(--tab3)" onclick="event.stopPropagation();openBook('expense')">지출</button>
-      <button class="bookmark" style="--c:var(--tab4)" onclick="event.stopPropagation();openBook('review')">월별 리뷰</button>
+      <button class="bookmark" style="--c:var(--tab1)" onclick="event.stopPropagation();openBook('calendar')">캘린더</button>
     </div>
   </div>
 </div>
@@ -180,15 +177,12 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
  <div class="book">
   <div class="spiral"></div>
   <nav class="bookmarks">
-    <button class="bookmark active" data-tab="dashboard" style="--c:var(--tab1)" onclick="flipTo('dashboard')">대시보드</button>
-    <button class="bookmark" data-tab="routine" style="--c:var(--tab2)" onclick="flipTo('routine')">루틴</button>
-    <button class="bookmark" data-tab="expense" style="--c:var(--tab3)" onclick="flipTo('expense')">지출</button>
-    <button class="bookmark" data-tab="review" style="--c:var(--tab4)" onclick="flipTo('review')">월별 리뷰</button>
+    <button class="bookmark active" data-tab="calendar" style="--c:var(--tab1)" onclick="flipTo('calendar')">캘린더</button>
   </nav>
   <div class="paper">
   <div class="header">
     <div>
-      <div class="header-title"><span id="header-title"></span><span class="header-chapter" id="header-chapter">대시보드</span></div>
+      <div class="header-title"><span id="header-title"></span><span class="header-chapter" id="header-chapter">캘린더</span></div>
       <div class="header-date" id="today-date"></div>
     </div>
     <div class="header-right">
@@ -198,8 +192,8 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
   </div>
 
   <div class="pages">
-  <!-- 대시보드 -->
-  <div id="tab-dashboard" class="page active">
+  <!-- 캘린더 -->
+  <div id="tab-calendar" class="page active">
     <div class="metric-grid">
       <div class="metric"><div class="metric-label">갓생 점수</div><div class="metric-value" id="dash-score">—</div><div class="metric-sub" id="dash-score-sub">아직 기록 없음</div></div>
       <div class="metric"><div class="metric-label">오늘 달성률</div><div class="metric-value" id="dash-pct">0<span style="font-size:13px;color:var(--text2)">%</span></div><div class="metric-sub" id="dash-sub">0/0 완료</div></div>
@@ -246,16 +240,8 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
     </div>
   </div>
 
-  <!-- 루틴 (비어 있음) -->
-  <div id="tab-routine" class="page" inert></div>
-
-  <!-- 지출 (비어 있음) -->
-  <div id="tab-expense" class="page" inert></div>
-
-  <!-- 월별 리뷰 (비어 있음) -->
-  <div id="tab-review" class="page" inert></div>
   </div>
-  <div class="page-foot"><span>‹</span><span id="page-num">1 / 4</span><span>›</span></div>
+  <div class="page-foot"><span>‹</span><span id="page-num">1 / 1</span><span>›</span></div>
   </div>
  </div>
 </div>
@@ -563,8 +549,8 @@ function addRoutine(){
 }
 
 // ===== 탭 =====
-var PAGE_ORDER=['dashboard','routine','expense','review'];
-var currentTab='dashboard';
+var PAGE_ORDER=['calendar'];
+var currentTab='calendar';
 
 function showTab(name){
   document.querySelectorAll('.page').forEach(function(p){
