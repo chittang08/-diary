@@ -152,8 +152,11 @@ begin
 end
 $$;
 
-revoke execute on function public.create_couple() from anon;
-revoke execute on function public.join_couple(text) from anon;
+-- 함수는 기본으로 public(=누구나)에게 열려 있으므로, 로그인한 사람만 부를 수 있게 좁힘
+revoke execute on function public.create_couple() from public, anon;
+revoke execute on function public.join_couple(text) from public, anon;
+grant execute on function public.create_couple() to authenticated;
+grant execute on function public.join_couple(text) to authenticated;
 
 
 -- ---------- 접근 권한 (RLS) ----------

@@ -10,6 +10,7 @@
 <meta name="theme-color" content="#E6DCCB">
 <title>갓생 다이어리</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=Gaegu:wght@400;700&family=Oswald:wght@500;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -44,6 +45,35 @@ body{background:var(--desk);color:var(--text);font-family:'Pretendard',sans-seri
 .header-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .score-badge{background:var(--green);color:white;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;}
 .close-book{border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;padding:4px 10px;border-radius:20px;}
+.header-couple{font-family:var(--hand);font-size:15px;color:var(--cover);margin-top:3px;}
+.header-couple .code{font-family:'Oswald',sans-serif;letter-spacing:0.15em;cursor:pointer;text-decoration:underline dotted;}
+[hidden]{display:none !important;}
+
+/* ===== 로그인 · 커플 연결 ===== */
+.gate{position:fixed;inset:0;z-index:8000;display:flex;align-items:center;justify-content:center;padding:28px 20px 28px 36px;overflow-y:auto;
+  background:radial-gradient(120% 90% at 50% 38%,#F5F1EB 0%,#E6DCCB 100%);}
+.gate-card{position:relative;width:min(420px,100%);margin:auto;background:var(--paper);border-radius:6px 14px 14px 6px;padding:30px 26px 26px 38px;
+  box-shadow:4px 4px 0 -1px #F1EADD,4px 4px 0 0 rgba(43,39,34,0.08),0 22px 44px -20px rgba(43,39,34,0.4);}
+.gate-card .spiral{top:14px;bottom:14px;}
+.gate-back{position:absolute;top:12px;right:14px;border:none;background:none;color:var(--text3);font-size:12px;}
+.gate-title{font-family:var(--hand);font-size:30px;font-weight:700;line-height:1.15;color:var(--text);}
+.gate-title .heart{color:var(--cover);}
+.gate-sub{font-size:13px;line-height:1.6;color:var(--text2);margin:8px 0 20px;word-break:keep-all;}
+.gate-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.gate-tabs button{flex:1;border:none;border-radius:20px;padding:8px;font-size:13px;background:var(--bg3);color:var(--text2);}
+.gate-tabs button.on{background:var(--tab1);color:var(--text);font-weight:600;}
+.gate form{display:flex;flex-direction:column;gap:8px;}
+.gate input{width:100%;background:var(--bg2);border:1px solid rgba(43,39,34,0.12);border-radius:10px;padding:12px 14px;font-size:16px;color:var(--text);font-family:'Pretendard',sans-serif;outline:none;}
+.gate input:focus{border-color:var(--cover);}
+.gate-btn{width:100%;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;background:var(--cover);color:#fff;margin-top:4px;}
+.gate-btn.ghost{background:transparent;color:var(--cover);border:1.5px solid var(--cover);}
+.gate-btn:disabled{opacity:0.5;}
+.gate-or{text-align:center;font-size:12px;color:var(--text3);margin:14px 0 10px;}
+.gate-msg{font-size:13px;line-height:1.5;color:var(--red);margin-top:12px;min-height:1em;word-break:keep-all;}
+.gate-msg.ok{color:var(--green);}
+.gate-link{display:block;margin:16px auto 0;border:none;background:none;font-size:12px;color:var(--text3);text-decoration:underline;}
+.invite-code{font-family:'Oswald',sans-serif;font-size:40px;font-weight:700;letter-spacing:0.3em;text-align:center;color:var(--cover);
+  background:var(--bg2);border:2px dashed var(--tab1);border-radius:12px;padding:14px 0 14px 0.3em;margin-bottom:12px;}
 
 /* ===== 표지 ===== */
 body.cover-on{overflow:hidden;}
@@ -81,6 +111,10 @@ body.cover-on{overflow:hidden;}
   .bookmark{width:38px;font-size:14px;padding:12px 0 12px 10px;}
   .header-title{font-size:24px;}
   .header-chapter{display:block;margin:2px 0 0;font-size:15px;}
+  .header{flex-wrap:wrap;align-items:flex-start;}
+  .header>div:first-child{flex:1 1 100%;}
+  .header-right{width:100%;justify-content:flex-end;}
+  .gate-title{font-size:26px;}
   .cover-screen{padding:24px 48px 24px 36px;}
 }
 /* 모든 페이지를 같은 칸에 겹쳐서, 가장 긴 페이지 높이에 다 같이 맞춤 */
@@ -184,10 +218,12 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
     <div>
       <div class="header-title"><span id="header-title"></span><span class="header-chapter" id="header-chapter">캘린더</span></div>
       <div class="header-date" id="today-date"></div>
+      <div class="header-couple" id="header-couple"></div>
     </div>
     <div class="header-right">
       <div class="score-badge" id="score-badge">—</div>
       <button class="close-book" onclick="closeBook()">📕 표지</button>
+      <button class="close-book" id="btn-logout" onclick="signOut()" hidden>로그아웃</button>
     </div>
   </div>
 
@@ -244,6 +280,62 @@ button{cursor:pointer;font-family:'Pretendard',sans-serif;-webkit-tap-highlight-
   <div class="page-foot"><span>‹</span><span id="page-num">1 / 1</span><span>›</span></div>
   </div>
  </div>
+</div>
+
+<!-- 로그인 · 커플 연결 (표지를 넘기면 다이어리 대신 먼저 보이는 페이지) -->
+<div id="gate" class="gate">
+  <div class="gate-card">
+    <div class="spiral"></div>
+    <button class="gate-back" onclick="closeBook()">← 표지</button>
+
+    <section id="gate-loading">
+      <div class="gate-title">잠깐만요…</div>
+      <p class="gate-sub">우리의 다이어리를 펼치는 중이에요.</p>
+    </section>
+
+    <section id="gate-auth" hidden>
+      <div class="gate-title">우리의 다이어리 <span class="heart">♥</span></div>
+      <p class="gate-sub">둘이 함께 쓰는 기록장이에요.<br>먼저 로그인해 주세요.</p>
+      <div class="gate-tabs">
+        <button type="button" data-mode="login" class="on">로그인</button>
+        <button type="button" data-mode="signup">처음이에요</button>
+      </div>
+      <form id="auth-form">
+        <input id="auth-nick" type="text" placeholder="닉네임 (짝꿍에게 보일 이름)" maxlength="12" hidden>
+        <input id="auth-email" type="email" placeholder="이메일" autocomplete="email" required>
+        <input id="auth-pw" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="current-password" minlength="6" required>
+        <button type="submit" class="gate-btn" id="auth-submit">로그인</button>
+      </form>
+      <div class="gate-msg" id="auth-msg"></div>
+    </section>
+
+    <section id="gate-couple" hidden>
+      <div class="gate-title">짝꿍과 연결하기</div>
+      <p class="gate-sub"><b id="gate-nick"></b>님, 다이어리를 새로 만들거나<br>짝꿍이 준 초대 코드를 입력해 주세요.</p>
+      <button type="button" class="gate-btn" id="btn-create">새 다이어리 만들기</button>
+      <div class="gate-or">또는 짝꿍이 이미 만들었다면</div>
+      <form id="join-form">
+        <input id="join-code" type="text" placeholder="초대 코드 6자리" maxlength="6" autocomplete="off" style="text-transform:uppercase;letter-spacing:0.2em;text-align:center;">
+        <button type="submit" class="gate-btn ghost">연결하기</button>
+      </form>
+      <div class="gate-msg" id="couple-msg"></div>
+      <button type="button" class="gate-link" onclick="signOut()">다른 계정으로 로그인</button>
+    </section>
+
+    <section id="gate-wait" hidden>
+      <div class="gate-title">다이어리가 생겼어요 <span class="heart">♥</span></div>
+      <p class="gate-sub">짝꿍에게 이 초대 코드를 보내주세요.<br>짝꿍이 코드를 입력하면 둘이 연결돼요.</p>
+      <div class="invite-code" id="invite-code"></div>
+      <button type="button" class="gate-btn ghost" onclick="copyInvite(this)">코드 복사하기</button>
+      <button type="button" class="gate-btn" onclick="justCreated=false;renderGate();">다이어리 펼치기</button>
+    </section>
+
+    <section id="gate-error" hidden>
+      <div class="gate-title">연결이 안 돼요</div>
+      <p class="gate-sub" id="gate-error-msg">인터넷 연결을 확인하고 새로고침해 주세요.</p>
+      <button type="button" class="gate-btn" onclick="location.reload()">새로고침</button>
+    </section>
+  </div>
 </div>
 
 <script>
@@ -632,8 +724,9 @@ function goPrev(){
   else closeBook();
 }
 var TAP_IGNORE='button,input,textarea,select,a,label,canvas,[onclick],.check-row,.expense-row,.heatmap-wrap,.bookmark';
+function isGateShown(){return !document.getElementById('gate').hidden;}
 document.addEventListener('click',function(e){
-  if(isCoverShown()||e.target.closest('#cover')) return;
+  if(isCoverShown()||isGateShown()||e.target.closest('#cover')) return;
   if(e.target.closest(TAP_IGNORE)) return;
   var sel=window.getSelection&&window.getSelection().toString();
   if(sel) return;
@@ -642,6 +735,7 @@ document.addEventListener('click',function(e){
 document.addEventListener('keydown',function(e){
   var tag=(e.target.tagName||'').toLowerCase();
   if(tag==='input'||tag==='textarea'||tag==='select') return;
+  if(isGateShown()) return;
   if(e.key==='ArrowRight') goNext();
   else if(e.key==='ArrowLeft') goPrev();
 });
@@ -688,6 +782,191 @@ updateDashExpense();
 // 저장된 완료 메시지
 var savedMsg=localStorage.getItem('diary_complete_msg');
 if(savedMsg){document.getElementById('complete-msg').textContent=savedMsg;}
+
+// ===== Supabase (커플 계정 · 연결) =====
+// publishable 키는 원래 공개용이라 코드에 넣어도 괜찮음. 데이터 보호는 DB의 RLS 규칙이 담당.
+// secret / service_role 키는 절대 여기 넣지 말 것.
+var SUPABASE_URL='https://tzkygyodhfspoxoqoscn.supabase.co';
+var SUPABASE_KEY='sb_publishable_Yiz5JPz6rKCndWe0iVV4wQ_-zLY7ao9';
+var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+
+var me=null;          // 로그인한 사용자
+var myProfile=null;   // 내 닉네임
+var partner=null;     // 짝꿍 프로필 (아직 안 들어왔으면 null)
+var couple=null;      // 우리 다이어리 (초대 코드, 사귄 날)
+var justCreated=false;
+var authMode='login';
+
+function showGateSection(id){
+  ['gate-loading','gate-auth','gate-couple','gate-wait','gate-error'].forEach(function(s){
+    document.getElementById(s).hidden=(s!==id);
+  });
+  document.getElementById('gate').hidden=!id;
+}
+
+function renderGate(){
+  if(!sb){
+    document.getElementById('gate-error-msg').textContent='다이어리 서버에 연결하지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.';
+    showGateSection('gate-error');return;
+  }
+  if(!me){showGateSection('gate-auth');}
+  else if(!couple){
+    document.getElementById('gate-nick').textContent=(myProfile&&myProfile.nickname)||'';
+    showGateSection('gate-couple');
+  }
+  else if(justCreated){
+    document.getElementById('invite-code').textContent=couple.invite_code;
+    showGateSection('gate-wait');
+  }
+  else showGateSection(null);
+  renderCoupleHeader();
+}
+
+function renderCoupleHeader(){
+  var el=document.getElementById('header-couple');
+  document.getElementById('btn-logout').hidden=!me;
+  if(!couple){el.innerHTML='';return;}
+  var myNick=(myProfile&&myProfile.nickname)||'나';
+  el.innerHTML='';
+  if(partner){
+    el.textContent='♥ '+myNick+' & '+(partner.nickname||'짝꿍');
+  } else {
+    el.appendChild(document.createTextNode('짝꿍 기다리는 중 · 초대 코드 '));
+    var code=document.createElement('span');
+    code.className='code';code.title='눌러서 복사';
+    code.textContent=couple.invite_code;
+    code.onclick=function(){copyInvite(code);};
+    el.appendChild(code);
+  }
+}
+
+async function loadCouple(){
+  couple=null;partner=null;myProfile=null;
+  var p=await sb.from('profiles').select('id,nickname').eq('id',me.id).maybeSingle();
+  myProfile=p.data;
+  var mem=await sb.from('couple_members').select('couple_id').eq('user_id',me.id).maybeSingle();
+  if(mem.error) throw mem.error;
+  if(!mem.data) return;
+  var c=await sb.from('couples').select('*').eq('id',mem.data.couple_id).single();
+  if(c.error) throw c.error;
+  couple=c.data;
+  var members=await sb.from('couple_members').select('user_id').eq('couple_id',couple.id);
+  var partnerId=(members.data||[]).map(function(m){return m.user_id;}).filter(function(id){return id!==me.id;})[0];
+  if(partnerId){
+    var pp=await sb.from('profiles').select('id,nickname').eq('id',partnerId).maybeSingle();
+    partner=pp.data||{id:partnerId,nickname:'짝꿍'};
+  }
+}
+
+async function refreshSession(session){
+  me=session?session.user:null;
+  try{
+    if(me) await loadCouple();
+    renderGate();
+  }catch(err){
+    document.getElementById('gate-error-msg').textContent='기록을 불러오지 못했어요. 잠시 후 새로고침해 주세요.';
+    showGateSection('gate-error');
+  }
+}
+
+function koreanAuthError(err){
+  var m=(err&&err.message)||'';
+  if(/Invalid login credentials/i.test(m)) return '이메일이나 비밀번호가 맞지 않아요.';
+  if(/Email not confirmed/i.test(m)) return '메일함에서 인증 링크를 먼저 눌러주세요.';
+  if(/already registered/i.test(m)) return '이미 가입된 이메일이에요. 로그인해 주세요.';
+  if(/Password should be/i.test(m)) return '비밀번호는 6자 이상이어야 해요.';
+  if(/rate limit|too many/i.test(m)) return '잠시 후 다시 시도해 주세요. (요청이 너무 많아요)';
+  if(/invalid.*email|email.*invalid/i.test(m)) return '이메일 형식을 확인해 주세요.';
+  return m||'문제가 생겼어요. 다시 시도해 주세요.';
+}
+
+function setAuthMode(mode){
+  authMode=mode;
+  document.querySelectorAll('.gate-tabs button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-mode')===mode);});
+  var nick=document.getElementById('auth-nick');
+  nick.hidden=mode!=='signup';nick.required=mode==='signup';
+  document.getElementById('auth-pw').autocomplete=mode==='signup'?'new-password':'current-password';
+  document.getElementById('auth-submit').textContent=mode==='signup'?'가입하기':'로그인';
+  var msg=document.getElementById('auth-msg');msg.textContent='';msg.className='gate-msg';
+}
+document.querySelectorAll('.gate-tabs button').forEach(function(b){
+  b.addEventListener('click',function(){setAuthMode(b.getAttribute('data-mode'));});
+});
+
+document.getElementById('auth-form').addEventListener('submit',async function(e){
+  e.preventDefault();
+  var email=document.getElementById('auth-email').value.trim();
+  var pw=document.getElementById('auth-pw').value;
+  var msg=document.getElementById('auth-msg');
+  var btn=document.getElementById('auth-submit');
+  msg.textContent='';msg.className='gate-msg';
+  btn.disabled=true;
+  try{
+    if(authMode==='signup'){
+      var nick=document.getElementById('auth-nick').value.trim();
+      var r=await sb.auth.signUp({email:email,password:pw,options:{data:{nickname:nick},emailRedirectTo:location.origin+location.pathname}});
+      if(r.error) throw r.error;
+      if(!r.data.session){
+        msg.className='gate-msg ok';
+        msg.textContent='인증 메일을 보냈어요. 메일의 링크를 누른 뒤 여기서 로그인해 주세요.';
+        setTimeout(function(){setAuthMode('login');msg.className='gate-msg ok';msg.textContent='메일 인증 후 로그인해 주세요.';},50);
+      }
+    } else {
+      var l=await sb.auth.signInWithPassword({email:email,password:pw});
+      if(l.error) throw l.error;
+    }
+  }catch(err){
+    msg.textContent=koreanAuthError(err);
+  }finally{
+    btn.disabled=false;
+  }
+});
+
+document.getElementById('btn-create').addEventListener('click',async function(){
+  var btn=this,msg=document.getElementById('couple-msg');
+  msg.textContent='';btn.disabled=true;
+  var r=await sb.rpc('create_couple');
+  btn.disabled=false;
+  if(r.error){msg.textContent=r.error.message;return;}
+  justCreated=true;
+  await refreshSession({user:me});
+});
+
+document.getElementById('join-form').addEventListener('submit',async function(e){
+  e.preventDefault();
+  var code=document.getElementById('join-code').value.trim().toUpperCase();
+  var msg=document.getElementById('couple-msg');
+  msg.textContent='';
+  if(code.length!==6){msg.textContent='초대 코드 6자리를 입력해 주세요.';return;}
+  var r=await sb.rpc('join_couple',{code:code});
+  if(r.error){msg.textContent=r.error.message;return;}
+  await refreshSession({user:me});
+});
+
+function copyInvite(el){
+  if(!couple) return;
+  var done=function(){var t=el.textContent;el.textContent='복사했어요!';setTimeout(function(){el.textContent=t;},1200);};
+  if(navigator.clipboard) navigator.clipboard.writeText(couple.invite_code).then(done,function(){});
+}
+
+async function signOut(){
+  if(sb) await sb.auth.signOut();
+  justCreated=false;
+  setAuthMode('login');
+  await refreshSession(null);
+}
+
+if(sb){
+  sb.auth.getSession().then(function(r){refreshSession(r.data.session);});
+  sb.auth.onAuthStateChange(function(event,session){
+    if(event==='SIGNED_IN'||event==='SIGNED_OUT'){
+      // 콜백 안에서 바로 Supabase를 다시 부르면 막힐 수 있어서 한 박자 뒤에 처리
+      setTimeout(function(){refreshSession(session);},0);
+    }
+  });
+} else {
+  renderGate();
+}
 
 </script>
 </body>
