@@ -9,9 +9,39 @@
 --   couple_members  : 다이어리에 속한 사람 (최대 2명, 한 사람은 한 커플만)
 --   entries         : 날짜별 기록 (한 줄, 기분)
 --   photos          : 사진 정보 (파일은 Storage 'photos' 버킷에 저장)
+--   push_subscriptions : 알림 받을 기기 (Web Push 구독 정보)
 --
 -- 보안: 모든 테이블과 사진은 "같은 커플인 두 사람"만 읽고 쓸 수 있음 (RLS)
 -- =====================================================================
+
+
+-- ---------- 초대 코드 생성 ----------
+-- 형식: 알파벳 2개(중복 허용) + 서로 다른 숫자 2개 + 서로 다른 알파벳 2개 (예: KK37BX)
+-- (함수 본문은 실행할 때 해석되므로 couples 테이블보다 먼저 만들어도 됨)
+create or replace function public.generate_invite_code()
+returns text
+language plpgsql volatile set search_path = public
+as $$
+declare
+  letters constant text := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  d1 int; d2 int; l1 int; l2 int;
+  code text;
+begin
+  loop
+    d1 := floor(random() * 10)::int;
+    d2 := floor(random() * 9)::int;  if d2 >= d1 then d2 := d2 + 1; end if;
+    l1 := floor(random() * 26)::int;
+    l2 := floor(random() * 25)::int; if l2 >= l1 then l2 := l2 + 1; end if;
+    code := substr(letters, floor(random() * 26)::int + 1, 1)
+         || substr(letters, floor(random() * 26)::int + 1, 1)
+         || d1::text || d2::text
+         || substr(letters, l1 + 1, 1)
+         || substr(letters, l2 + 1, 1);
+    exit when not exists (select 1 from public.couples where invite_code = code);
+  end loop;
+  return code;
+end
+$$;
 
 
 -- ---------- 테이블 ----------
@@ -24,7 +54,7 @@ create table public.profiles (
 
 create table public.couples (
   id           uuid primary key default gen_random_uuid(),
-  invite_code  text not null unique default upper(substr(md5(gen_random_uuid()::text), 1, 6)),
+  invite_code  text not null unique default public.generate_invite_code(),
   started_on   date,                                   -- 사귄 날 (D-day 계산용)
   created_at   timestamptz not null default now()
 );
@@ -59,6 +89,15 @@ create table public.photos (
   created_at    timestamptz not null default now()
 );
 create index photos_couple_date_idx on public.photos (couple_id, taken_on desc);
+
+create table public.push_subscriptions (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  endpoint    text not null unique,
+  p256dh      text not null,
+  auth        text not null,
+  created_at  timestamptz not null default now()
+);
 
 
 -- ---------- 도우미 함수 ----------
@@ -166,6 +205,7 @@ alter table public.couples        enable row level security;
 alter table public.couple_members enable row level security;
 alter table public.entries        enable row level security;
 alter table public.photos         enable row level security;
+alter table public.push_subscriptions enable row level security;
 
 -- profiles: 나와 내 짝꿍 것만 보기, 내 것만 수정
 create policy "profiles: 나와 짝꿍 보기" on public.profiles
@@ -214,6 +254,17 @@ create policy "photos: 내 사진 수정" on public.photos
 create policy "photos: 내 사진 삭제" on public.photos
   for delete to authenticated
   using (uploader_id = auth.uid() and couple_id = public.my_couple_id());
+
+
+-- push_subscriptions: 내 기기만 보기/등록/수정/삭제 (짝꿍에게 보내는 건 Edge Function 이 service role 로 처리)
+create policy "push: 내 기기 보기" on public.push_subscriptions
+  for select to authenticated using (user_id = auth.uid());
+create policy "push: 내 기기 등록" on public.push_subscriptions
+  for insert to authenticated with check (user_id = auth.uid());
+create policy "push: 내 기기 수정" on public.push_subscriptions
+  for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "push: 내 기기 삭제" on public.push_subscriptions
+  for delete to authenticated using (user_id = auth.uid());
 
 
 -- ---------- 실시간 동기화 (Realtime) ----------
