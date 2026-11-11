@@ -482,6 +482,9 @@ function saveAll(){
   storedData.completeMsg=document.getElementById('complete-msg').textContent;
   storedData.savedAt=new Date().toISOString();
   localStorage.setItem(STORAGE_KEY,JSON.stringify(storedData));
+  if(typeof syncDiaryWithSupabase==='function'){
+    syncDiaryWithSupabase();
+  }
 }
 
 function checkDailyReset(){
@@ -977,7 +980,18 @@ async function loadCouple(){
 async function refreshSession(session){
   me=session?session.user:null;
   try{
-    if(me) await loadCouple();
+    if(me) {
+      await loadCouple();
+      if(couple){
+        setupRealtime();
+        await loadFromSupabase();
+      }
+    } else {
+      if(syncChannel){
+        try{sb.removeChannel(syncChannel);}catch(e){}
+        syncChannel=null;
+      }
+    }
     renderGate();
   }catch(err){
     document.getElementById('gate-error-msg').textContent='기록을 불러오지 못했어요. 잠시 후 새로고침해 주세요.';
@@ -1057,6 +1071,9 @@ document.getElementById('join-form').addEventListener('submit',async function(e)
   var r=await sb.rpc('join_couple',{code:code});
   if(r.error){msg.textContent=r.error.message;return;}
   await refreshSession({user:me});
+  if(syncChannel){
+    syncChannel.send({type:'broadcast',event:'partner_connected',payload:{}});
+  }
 });
 
 function copyInvite(el){
@@ -1066,10 +1083,196 @@ function copyInvite(el){
 }
 
 async function signOut(){
+  if(syncChannel){
+    try{sb.removeChannel(syncChannel);}catch(e){}
+    syncChannel=null;
+  }
   if(sb) await sb.auth.signOut();
   justCreated=false;
   setAuthMode('login');
   await refreshSession(null);
+}
+
+// ===== Supabase 실시간 동기화 (Realtime & Cloud Persistence) =====
+var syncChannel=null;
+var dbSaveTimer=null;
+
+function setupRealtime(){
+  if(!sb||!couple) return;
+  if(syncChannel){
+    try{sb.removeChannel(syncChannel);}catch(e){}
+    syncChannel=null;
+  }
+  syncChannel=sb.channel('couple:'+couple.id,{config:{broadcast:{self:false}}});
+
+  // 1) 짝꿍의 실시간 체크/루틴 수정 브로드캐스트 즉시 반영
+  syncChannel.on('broadcast',{event:'diary_update'},function(payload){
+    if(payload&&payload.payload){
+      applyRemoteData(payload.payload);
+    }
+  });
+
+  // 2) 짝꿍이 초대 코드로 연결 완료했을 때 헤더 즉시 갱신
+  syncChannel.on('broadcast',{event:'partner_connected'},async function(){
+    await loadCouple();
+    renderCoupleHeader();
+  });
+
+  // 3) DB postgres_changes 감지 (백그라운드 복귀 또는 누락 대비)
+  syncChannel.on('postgres_changes',{event:'*',schema:'public',table:'entries',filter:'couple_id=eq.'+couple.id},function(payload){
+    if(payload&&payload.new&&payload.new.author_id!==(me?me.id:null)){
+      loadFromSupabase();
+    }
+  });
+
+  // 4) DB 회원 연결 감지
+  syncChannel.on('postgres_changes',{event:'INSERT',schema:'public',table:'couple_members',filter:'couple_id=eq.'+couple.id},async function(){
+    await loadCouple();
+    renderCoupleHeader();
+  });
+
+  syncChannel.subscribe();
+}
+
+function broadcastUpdate(){
+  if(!syncChannel||!couple) return;
+  var rawHM=localStorage.getItem(HM_KEY);
+  var hmData=rawHM?JSON.parse(rawHM):{};
+  var rawHist=localStorage.getItem(ROUTINE_HISTORY_KEY);
+  var routineHist=rawHist?JSON.parse(rawHist):{};
+
+  syncChannel.send({
+    type:'broadcast',
+    event:'diary_update',
+    payload:{
+      senderId:me?me.id:null,
+      routines:routines,
+      completeMsg:document.getElementById('complete-msg').textContent,
+      hmData:hmData,
+      routineHist:routineHist,
+      storedData:storedData,
+      updatedAt:new Date().toISOString()
+    }
+  });
+}
+
+function saveToSupabase(){
+  if(!sb||!couple||!me) return;
+  if(dbSaveTimer) clearTimeout(dbSaveTimer);
+  dbSaveTimer=setTimeout(async function(){
+    try{
+      var rawHM=localStorage.getItem(HM_KEY);
+      var hmData=rawHM?JSON.parse(rawHM):{};
+      var rawHist=localStorage.getItem(ROUTINE_HISTORY_KEY);
+      var routineHist=rawHist?JSON.parse(rawHist):{};
+
+      var payloadObj={
+        routines:routines,
+        completeMsg:document.getElementById('complete-msg').textContent,
+        hmData:hmData,
+        routineHist:routineHist,
+        storedData:storedData,
+        updatedAt:new Date().toISOString()
+      };
+      var contentStr=JSON.stringify(payloadObj);
+      var todayStr=getTodayKey();
+
+      var existing=await sb.from('entries')
+        .select('id')
+        .eq('couple_id',couple.id)
+        .eq('author_id',me.id)
+        .eq('entry_date',todayStr)
+        .maybeSingle();
+
+      if(existing.data&&existing.data.id){
+        await sb.from('entries').update({
+          content:contentStr,
+          updated_at:new Date().toISOString()
+        }).eq('id',existing.data.id);
+      } else {
+        await sb.from('entries').insert({
+          couple_id:couple.id,
+          author_id:me.id,
+          entry_date:todayStr,
+          content:contentStr,
+          mood:'routine_sync'
+        });
+      }
+    }catch(err){
+      console.error('Supabase save error:',err);
+    }
+  },400);
+}
+
+function syncDiaryWithSupabase(){
+  if(!sb||!couple||!me) return;
+  broadcastUpdate();
+  saveToSupabase();
+}
+
+function applyRemoteData(data){
+  if(!data) return;
+  if(data.senderId&&me&&data.senderId===me.id) return;
+
+  if(data.routines&&Array.isArray(data.routines)){
+    routines=data.routines;
+    storedData.routines=routines;
+  }
+  if(data.completeMsg){
+    var msgEl=document.getElementById('complete-msg');
+    if(msgEl) msgEl.textContent=data.completeMsg;
+    storedData.completeMsg=data.completeMsg;
+    localStorage.setItem('diary_complete_msg',data.completeMsg);
+  }
+  if(data.storedData&&typeof data.storedData==='object'){
+    storedData=Object.assign(storedData,data.storedData);
+    storedData.routines=routines;
+  }
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(storedData));
+
+  if(data.hmData){
+    localStorage.setItem(HM_KEY,JSON.stringify(data.hmData));
+  }
+  if(data.routineHist){
+    localStorage.setItem(ROUTINE_HISTORY_KEY,JSON.stringify(data.routineHist));
+  }
+
+  renderChecklist('dash-checklist');
+  updateAll();
+  buildHeatmap();
+  refreshGodlifeScore();
+  updateDashExpense();
+}
+
+async function loadFromSupabase(){
+  if(!sb||!couple||!me) return;
+  try{
+    var res=await sb.from('entries')
+      .select('content,updated_at,created_at')
+      .eq('couple_id',couple.id)
+      .order('updated_at',{ascending:false})
+      .limit(5);
+
+    if(res.error){
+      console.error('loadFromSupabase query error:',res.error);
+      return;
+    }
+    if(res.data&&res.data.length>0){
+      for(var i=0;i<res.data.length;i++){
+        try{
+          var parsed=JSON.parse(res.data[i].content);
+          if(parsed&&(parsed.routines||parsed.hmData||parsed.storedData)){
+            applyRemoteData(parsed);
+            return;
+          }
+        }catch(e){}
+      }
+    } else {
+      saveToSupabase();
+    }
+  }catch(err){
+    console.error('loadFromSupabase error:',err);
+  }
 }
 
 if(sb){
