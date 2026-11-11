@@ -216,6 +216,13 @@ create policy "photos: 내 사진 삭제" on public.photos
   using (uploader_id = auth.uid() and couple_id = public.my_couple_id());
 
 
+-- ---------- 실시간 동기화 (Realtime) ----------
+-- 짝꿍의 기록 변경(entries)과 초대 코드 연결(couple_members)을 앱이 실시간으로 받도록 등록.
+-- 받는 쪽에서도 RLS가 적용되므로 같은 커플의 변경만 전달됨.
+
+alter publication supabase_realtime add table public.entries, public.couple_members;
+
+
 -- ---------- 사진 저장소 (Storage) ----------
 -- 비공개 버킷. 파일 경로 첫 폴더가 커플 id 인 것만 그 커플이 접근 가능.
 

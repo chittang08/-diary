@@ -1072,10 +1072,9 @@ document.getElementById('join-form').addEventListener('submit',async function(e)
   if(code.length!==6){msg.textContent='초대 코드 6자리를 입력해 주세요.';return;}
   var r=await sb.rpc('join_couple',{code:code});
   if(r.error){msg.textContent=r.error.message;return;}
+  // 채널 구독이 끝난 뒤에 짝꿍에게 알리도록 표시만 해 둔다 (setupRealtime 의 subscribe 콜백에서 전송)
+  pendingPartnerConnected=true;
   await refreshSession({user:me});
-  if(syncChannel){
-    syncChannel.send({type:'broadcast',event:'partner_connected',payload:{}});
-  }
 });
 
 function copyInvite(el){
@@ -1098,6 +1097,7 @@ async function signOut(){
 // ===== Supabase 실시간 동기화 (Realtime & Cloud Persistence) =====
 var syncChannel=null;
 var dbSaveTimer=null;
+var pendingPartnerConnected=false;
 
 function setupRealtime(){
   if(!sb||!couple) return;
@@ -1133,7 +1133,13 @@ function setupRealtime(){
     renderCoupleHeader();
   });
 
-  syncChannel.subscribe();
+  var channel=syncChannel;
+  channel.subscribe(function(status){
+    if(status==='SUBSCRIBED'&&pendingPartnerConnected&&syncChannel===channel){
+      pendingPartnerConnected=false;
+      channel.send({type:'broadcast',event:'partner_connected',payload:{}});
+    }
+  });
 }
 
 function broadcastUpdate(){
