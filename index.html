@@ -557,7 +557,9 @@ function checkMonthlyReset(){
 
 // ===== 히트맵 =====
 function getTodayKey(){
-  var d=new Date();
+  return getDateKey(new Date());
+}
+function getDateKey(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 function saveHeatmapToday(){
@@ -1216,6 +1218,12 @@ function applyRemoteData(data){
 
   if(data.routines&&Array.isArray(data.routines)){
     routines=data.routines;
+    // 서버에서 받은 기록이 오늘 것이 아니면(예: 어제 저장분) 체크는 풀고 루틴 목록만 가져온다
+    var stamp=data.updatedAt||(data.storedData&&data.storedData.savedAt);
+    var stampDate=stamp?new Date(stamp):null;
+    if(stampDate&&!isNaN(stampDate)&&getDateKey(stampDate)!==getTodayKey()){
+      routines.forEach(function(r){r.done=false;});
+    }
     storedData.routines=routines;
   }
   if(data.completeMsg){
