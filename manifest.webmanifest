@@ -1,0 +1,10 @@
+{
+  "name": "갓생 다이어리",
+  "short_name": "갓생 다이어리",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#E6DCCB",
+  "theme_color": "#E6DCCB"
+}

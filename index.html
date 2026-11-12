@@ -9,6 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#E6DCCB">
 <title>갓생 다이어리</title>
+<link rel="manifest" href="manifest.webmanifest">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -443,6 +444,8 @@ button{cursor:pointer;font-family:var(--body);-webkit-tap-highlight-color:transp
       <p class="gate-sub">짝꿍에게 이 초대 코드를 보내주세요.<br>짝꿍이 코드를 입력하면 둘이 연결돼요.</p>
       <div class="invite-code" id="invite-code"></div>
       <button type="button" class="gate-btn ghost" onclick="copyInvite(this)">코드 복사하기</button>
+      <button type="button" class="gate-btn ghost" id="btn-push" onclick="enablePushNotifications(this,document.getElementById('push-msg'))">🔔 짝꿍이 들어오면 알림 받기</button>
+      <div class="gate-msg" id="push-msg"></div>
       <button type="button" class="gate-btn" onclick="justCreated=false;renderGate();">다이어리 펼치기</button>
     </section>
 
@@ -557,7 +560,9 @@ function checkMonthlyReset(){
 
 // ===== 히트맵 =====
 function getTodayKey(){
-  var d=new Date();
+  return getDateKey(new Date());
+}
+function getDateKey(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 function saveHeatmapToday(){
@@ -935,6 +940,7 @@ function renderGate(){
   }
   else if(justCreated){
     document.getElementById('invite-code').textContent=couple.invite_code;
+    updatePushButton();
     showGateSection('gate-wait');
   }
   else showGateSection(null);
@@ -956,6 +962,14 @@ function renderCoupleHeader(){
     code.textContent=couple.invite_code;
     code.onclick=function(){copyInvite(code);};
     el.appendChild(code);
+    // 아직 알림을 안 켰으면 종 아이콘으로 켤 수 있게
+    if(!('Notification' in window)||Notification.permission!=='granted'){
+      var bell=document.createElement('span');
+      bell.className='code';bell.title='짝꿍이 들어오면 알림 받기';
+      bell.textContent='🔔';bell.style.marginLeft='6px';
+      bell.onclick=function(){enablePushNotifications(bell,null);};
+      el.appendChild(bell);
+    }
   }
 }
 
@@ -1070,10 +1084,11 @@ document.getElementById('join-form').addEventListener('submit',async function(e)
   if(code.length!==6){msg.textContent='초대 코드 6자리를 입력해 주세요.';return;}
   var r=await sb.rpc('join_couple',{code:code});
   if(r.error){msg.textContent=r.error.message;return;}
+  // 채널 구독이 끝난 뒤에 짝꿍에게 알리도록 표시만 해 둔다 (setupRealtime 의 subscribe 콜백에서 전송)
+  pendingPartnerConnected=true;
+  // 다이어리를 만든 짝꿍의 휴대폰으로 "연결됐어요" 알림 보내기 (실패해도 연결에는 영향 없음)
+  sb.functions.invoke('notify-partner').catch(function(){});
   await refreshSession({user:me});
-  if(syncChannel){
-    syncChannel.send({type:'broadcast',event:'partner_connected',payload:{}});
-  }
 });
 
 function copyInvite(el){
@@ -1093,9 +1108,73 @@ async function signOut(){
   await refreshSession(null);
 }
 
+// ===== 알림 (Web Push): 짝꿍이 초대 코드로 들어오면 휴대폰으로 알림 =====
+// 공개키는 공개용이라 코드에 넣어도 됨. 개인키는 Supabase Edge Function secret(VAPID_PRIVATE_KEY)에만 있음.
+var VAPID_PUBLIC_KEY='BAhjcELc9YpC6IXe4JlgYYowpbHR0kgfQymyeQ0Or0DaknbCixK8kXC-b_rthyb2ikc1nRVJlAVUStAXuRukd8E';
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(function(e){console.warn('service worker 등록 실패',e);});
+}
+
+function pushSupported(){
+  return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+}
+function isIOS(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+}
+function urlB64ToUint8Array(b64){
+  var pad='='.repeat((4-b64.length%4)%4);
+  var raw=atob((b64+pad).replace(/-/g,'+').replace(/_/g,'/'));
+  var out=new Uint8Array(raw.length);
+  for(var i=0;i<raw.length;i++) out[i]=raw.charCodeAt(i);
+  return out;
+}
+
+function updatePushButton(){
+  var btn=document.getElementById('btn-push');
+  if(btn) btn.hidden=('Notification' in window)&&Notification.permission==='granted';
+}
+
+async function enablePushNotifications(btn,msgEl){
+  var say=function(text,ok){
+    if(msgEl){msgEl.textContent=text;msgEl.classList.toggle('ok',!!ok);}
+    else alert(text);
+  };
+  if(!sb||!me){say('먼저 로그인해 주세요.');return;}
+  if(!pushSupported()){
+    say(isIOS()
+      ?'아이폰은 Safari 공유 버튼 → "홈 화면에 추가" 한 뒤, 홈 화면 아이콘으로 열어야 알림을 받을 수 있어요.'
+      :'이 브라우저에서는 알림을 받을 수 없어요.');
+    return;
+  }
+  btn.disabled=true;
+  try{
+    var perm=await Notification.requestPermission();
+    if(perm!=='granted'){say('알림이 꺼져 있어요. 휴대폰/브라우저 설정에서 이 사이트 알림을 허용해 주세요.');return;}
+    var reg=await navigator.serviceWorker.ready;
+    var sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8Array(VAPID_PUBLIC_KEY)});
+    var j=sub.toJSON();
+    var r=await sb.from('push_subscriptions').upsert(
+      {user_id:me.id,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth},
+      {onConflict:'endpoint'}
+    );
+    if(r.error) throw r.error;
+    say('알림 켜졌어요! 짝꿍이 들어오면 알려줄게요 🔔',true);
+    updatePushButton();
+    renderCoupleHeader();
+  }catch(e){
+    console.error('push subscribe error',e);
+    say('알림을 켜지 못했어요. 잠시 후 다시 시도해 주세요.');
+  }finally{
+    btn.disabled=false;
+  }
+}
+
 // ===== Supabase 실시간 동기화 (Realtime & Cloud Persistence) =====
 var syncChannel=null;
 var dbSaveTimer=null;
+var pendingPartnerConnected=false;
 
 function setupRealtime(){
   if(!sb||!couple) return;
@@ -1131,7 +1210,13 @@ function setupRealtime(){
     renderCoupleHeader();
   });
 
-  syncChannel.subscribe();
+  var channel=syncChannel;
+  channel.subscribe(function(status){
+    if(status==='SUBSCRIBED'&&pendingPartnerConnected&&syncChannel===channel){
+      pendingPartnerConnected=false;
+      channel.send({type:'broadcast',event:'partner_connected',payload:{}});
+    }
+  });
 }
 
 function broadcastUpdate(){
@@ -1216,6 +1301,12 @@ function applyRemoteData(data){
 
   if(data.routines&&Array.isArray(data.routines)){
     routines=data.routines;
+    // 서버에서 받은 기록이 오늘 것이 아니면(예: 어제 저장분) 체크는 풀고 루틴 목록만 가져온다
+    var stamp=data.updatedAt||(data.storedData&&data.storedData.savedAt);
+    var stampDate=stamp?new Date(stamp):null;
+    if(stampDate&&!isNaN(stampDate)&&getDateKey(stampDate)!==getTodayKey()){
+      routines.forEach(function(r){r.done=false;});
+    }
     storedData.routines=routines;
   }
   if(data.completeMsg){
