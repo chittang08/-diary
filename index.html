@@ -300,6 +300,20 @@ button{cursor:pointer;font-family:var(--body);-webkit-tap-highlight-color:transp
 .complete-msg{text-align:center;padding:10px;font-family:var(--hand);font-size:16px;font-weight:700;color:#37795A;
   background:rgba(120,186,152,.16);border:1px dashed rgba(63,143,107,.3);border-radius:9px;margin-top:10px;display:none;}
 @media(max-width:860px){.two-col{grid-template-columns:1fr 1fr;}}
+
+/* ===== 당겨서 새로고침 ===== */
+html,body{overscroll-behavior-y:contain;}
+.pull-refresh{position:fixed;top:10px;left:50%;z-index:60;transform:translate(-50%,-70px);display:flex;align-items:center;gap:8px;
+  padding:7px 14px 7px 11px;border-radius:999px;background:var(--paper2);border:1px solid rgba(161,90,102,.25);
+  box-shadow:0 6px 16px -8px rgba(46,41,37,.35);font-family:var(--hand);font-size:15px;color:var(--rose-deep);
+  pointer-events:none;opacity:0;transition:transform .25s ease,opacity .2s ease;}
+.pull-refresh.pulling,.pull-refresh.ready{opacity:1;transition:none;}
+.pull-refresh.loading,.pull-refresh.done,.pull-refresh.fail{opacity:1;transform:translate(-50%,0);}
+.pull-refresh .pull-icon{display:inline-block;transition:transform .2s ease;}
+.pull-refresh.ready .pull-icon{transform:rotate(180deg);}
+.pull-refresh.loading .pull-icon{animation:pullSpin .8s linear infinite;}
+.pull-refresh.fail{color:var(--text2);}
+@keyframes pullSpin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body class="cover-on">
@@ -397,6 +411,8 @@ button{cursor:pointer;font-family:var(--body);-webkit-tap-highlight-color:transp
   </div>
  </div>
 </div>
+
+<div id="pull-refresh" class="pull-refresh" aria-live="polite"><span class="pull-icon">↓</span><span class="pull-text">당겨서 새로고침</span></div>
 
 <!-- 로그인 · 커플 연결 (표지를 넘기면 다이어리 대신 먼저 보이는 페이지) -->
 <div id="gate" class="gate">
@@ -980,17 +996,9 @@ async function loadCouple(){
 async function refreshSession(session){
   me=session?session.user:null;
   try{
-    if(me) {
+    if(me){
       await loadCouple();
-      if(couple){
-        setupRealtime();
-        await loadFromSupabase();
-      }
-    } else {
-      if(syncChannel){
-        try{sb.removeChannel(syncChannel);}catch(e){}
-        syncChannel=null;
-      }
+      if(couple) await loadFromSupabase();
     }
     renderGate();
   }catch(err){
@@ -1071,9 +1079,6 @@ document.getElementById('join-form').addEventListener('submit',async function(e)
   var r=await sb.rpc('join_couple',{code:code});
   if(r.error){msg.textContent=r.error.message;return;}
   await refreshSession({user:me});
-  if(syncChannel){
-    syncChannel.send({type:'broadcast',event:'partner_connected',payload:{}});
-  }
 });
 
 function copyInvite(el){
@@ -1083,132 +1088,158 @@ function copyInvite(el){
 }
 
 async function signOut(){
-  if(syncChannel){
-    try{sb.removeChannel(syncChannel);}catch(e){}
-    syncChannel=null;
-  }
+  await flushSave();
   if(sb) await sb.auth.signOut();
   justCreated=false;
   setAuthMode('login');
   await refreshSession(null);
 }
 
-// ===== Supabase 실시간 동기화 (Realtime & Cloud Persistence) =====
-var syncChannel=null;
+// ===== Supabase 저장 · 당겨서 새로고침 =====
+// 내가 고친 건 서버에 저장되고, 짝꿍은 화면을 위로 당기면(새로고침) 최신 상태를 받아온다.
+// (실시간으로 서로 화면을 밀어 넣는 방식은 쓰지 않음)
 var dbSaveTimer=null;
 
-function setupRealtime(){
-  if(!sb||!couple) return;
-  if(syncChannel){
-    try{sb.removeChannel(syncChannel);}catch(e){}
-    syncChannel=null;
-  }
-  syncChannel=sb.channel('couple:'+couple.id,{config:{broadcast:{self:false}}});
-
-  // 1) 짝꿍의 실시간 체크/루틴 수정 브로드캐스트 즉시 반영
-  syncChannel.on('broadcast',{event:'diary_update'},function(payload){
-    if(payload&&payload.payload){
-      applyRemoteData(payload.payload);
-    }
-  });
-
-  // 2) 짝꿍이 초대 코드로 연결 완료했을 때 헤더 즉시 갱신
-  syncChannel.on('broadcast',{event:'partner_connected'},async function(){
-    await loadCouple();
-    renderCoupleHeader();
-  });
-
-  // 3) DB postgres_changes 감지 (백그라운드 복귀 또는 누락 대비)
-  syncChannel.on('postgres_changes',{event:'*',schema:'public',table:'entries',filter:'couple_id=eq.'+couple.id},function(payload){
-    if(payload&&payload.new&&payload.new.author_id!==(me?me.id:null)){
-      loadFromSupabase();
-    }
-  });
-
-  // 4) DB 회원 연결 감지
-  syncChannel.on('postgres_changes',{event:'INSERT',schema:'public',table:'couple_members',filter:'couple_id=eq.'+couple.id},async function(){
-    await loadCouple();
-    renderCoupleHeader();
-  });
-
-  syncChannel.subscribe();
+function buildSyncPayload(){
+  var rawHM=localStorage.getItem(HM_KEY);
+  var rawHist=localStorage.getItem(ROUTINE_HISTORY_KEY);
+  return {
+    routines:routines,
+    completeMsg:document.getElementById('complete-msg').textContent,
+    hmData:rawHM?JSON.parse(rawHM):{},
+    routineHist:rawHist?JSON.parse(rawHist):{},
+    storedData:storedData,
+    updatedAt:new Date().toISOString()
+  };
 }
 
-function broadcastUpdate(){
-  if(!syncChannel||!couple) return;
-  var rawHM=localStorage.getItem(HM_KEY);
-  var hmData=rawHM?JSON.parse(rawHM):{};
-  var rawHist=localStorage.getItem(ROUTINE_HISTORY_KEY);
-  var routineHist=rawHist?JSON.parse(rawHist):{};
-
-  syncChannel.send({
-    type:'broadcast',
-    event:'diary_update',
-    payload:{
-      senderId:me?me.id:null,
-      routines:routines,
-      completeMsg:document.getElementById('complete-msg').textContent,
-      hmData:hmData,
-      routineHist:routineHist,
-      storedData:storedData,
-      updatedAt:new Date().toISOString()
+async function saveNow(){
+  if(!sb||!couple||!me) return;
+  try{
+    var contentStr=JSON.stringify(buildSyncPayload());
+    var todayStr=getTodayKey();
+    var existing=await sb.from('entries')
+      .select('id')
+      .eq('couple_id',couple.id)
+      .eq('author_id',me.id)
+      .eq('entry_date',todayStr)
+      .maybeSingle();
+    if(existing.data&&existing.data.id){
+      await sb.from('entries').update({content:contentStr}).eq('id',existing.data.id);
+    } else {
+      await sb.from('entries').insert({
+        couple_id:couple.id,
+        author_id:me.id,
+        entry_date:todayStr,
+        content:contentStr,
+        mood:'routine_sync'
+      });
     }
-  });
+  }catch(err){
+    console.error('Supabase save error:',err);
+  }
 }
 
 function saveToSupabase(){
   if(!sb||!couple||!me) return;
   if(dbSaveTimer) clearTimeout(dbSaveTimer);
-  dbSaveTimer=setTimeout(async function(){
-    try{
-      var rawHM=localStorage.getItem(HM_KEY);
-      var hmData=rawHM?JSON.parse(rawHM):{};
-      var rawHist=localStorage.getItem(ROUTINE_HISTORY_KEY);
-      var routineHist=rawHist?JSON.parse(rawHist):{};
+  dbSaveTimer=setTimeout(function(){dbSaveTimer=null;saveNow();},400);
+}
 
-      var payloadObj={
-        routines:routines,
-        completeMsg:document.getElementById('complete-msg').textContent,
-        hmData:hmData,
-        routineHist:routineHist,
-        storedData:storedData,
-        updatedAt:new Date().toISOString()
-      };
-      var contentStr=JSON.stringify(payloadObj);
-      var todayStr=getTodayKey();
-
-      var existing=await sb.from('entries')
-        .select('id')
-        .eq('couple_id',couple.id)
-        .eq('author_id',me.id)
-        .eq('entry_date',todayStr)
-        .maybeSingle();
-
-      if(existing.data&&existing.data.id){
-        await sb.from('entries').update({
-          content:contentStr,
-          updated_at:new Date().toISOString()
-        }).eq('id',existing.data.id);
-      } else {
-        await sb.from('entries').insert({
-          couple_id:couple.id,
-          author_id:me.id,
-          entry_date:todayStr,
-          content:contentStr,
-          mood:'routine_sync'
-        });
-      }
-    }catch(err){
-      console.error('Supabase save error:',err);
-    }
-  },400);
+// 아직 안 보낸 저장이 있으면 바로 보내고 끝날 때까지 기다림 (새로고침·로그아웃 전에)
+async function flushSave(){
+  if(!dbSaveTimer) return;
+  clearTimeout(dbSaveTimer);
+  dbSaveTimer=null;
+  await saveNow();
 }
 
 function syncDiaryWithSupabase(){
-  if(!sb||!couple||!me) return;
-  broadcastUpdate();
   saveToSupabase();
 }
+
+// 서버에서 최신 상태(짝꿍 연결 여부 + 다이어리 내용)를 다시 받아옴
+var refreshing=false;
+async function refreshFromServer(){
+  if(!sb||!me||refreshing) return false;
+  refreshing=true;
+  try{
+    await flushSave();
+    await loadCouple();
+    if(couple) await loadFromSupabase();
+    renderGate();
+    return true;
+  }catch(err){
+    console.error('refresh error:',err);
+    return false;
+  }finally{
+    refreshing=false;
+  }
+}
+
+// --- 당겨서 새로고침 표시 ---
+var PULL_TRIGGER=70;   // 이만큼(px) 당기면 새로고침
+function pullIndicator(){return document.getElementById('pull-refresh');}
+function setPull(state,dist){
+  var el=pullIndicator();
+  el.className='pull-refresh'+(state?' '+state:'');
+  if(state==='pulling'||state==='ready'){
+    el.style.transform='translate(-50%,'+(-44+Math.min(dist,PULL_TRIGGER+20)*0.7)+'px)';
+  } else {
+    el.style.transform='';
+  }
+  el.querySelector('.pull-text').textContent=
+    state==='ready'?'놓으면 새로고침':
+    state==='loading'?'새로고침 중…':
+    state==='done'?'최신으로 바꿨어요':
+    state==='fail'?'불러오지 못했어요':'당겨서 새로고침';
+}
+async function runPullRefresh(){
+  setPull('loading');
+  var ok=await refreshFromServer();
+  setPull(ok?'done':'fail');
+  setTimeout(function(){setPull('');},900);
+}
+// 다이어리 본문이 열려 있고(표지·로그인 화면 아님) 짝꿍 다이어리에 연결돼 있을 때만
+function canPullRefresh(){
+  return !!(me&&couple)&&!isCoverShown()&&!isGateShown()&&!refreshing&&!flipping;
+}
+
+// 휴대폰·태블릿: 맨 위에서 아래로 끌어당겼다 놓기
+var pullStartY=null,pullDist=0;
+document.addEventListener('touchstart',function(e){
+  if(!canPullRefresh()||window.scrollY>0||e.touches.length!==1){pullStartY=null;return;}
+  pullStartY=e.touches[0].clientY;pullDist=0;
+},{passive:true});
+document.addEventListener('touchmove',function(e){
+  if(pullStartY===null) return;
+  pullDist=e.touches[0].clientY-pullStartY;
+  if(pullDist<=0||window.scrollY>0){setPull('');return;}
+  setPull(pullDist>=PULL_TRIGGER?'ready':'pulling',pullDist);
+},{passive:true});
+document.addEventListener('touchend',function(){
+  if(pullStartY===null) return;
+  var go=pullDist>=PULL_TRIGGER&&window.scrollY<=0;
+  pullStartY=null;pullDist=0;
+  if(go) runPullRefresh(); else setPull('');
+});
+
+// 컴퓨터: 맨 위에서 마우스 휠을 한 번 더 위로 굴리기
+var wheelPull=0,wheelTimer=null;
+window.addEventListener('wheel',function(e){
+  if(!canPullRefresh()||window.scrollY>0||e.deltaY>=0){wheelPull=0;return;}
+  wheelPull+=-e.deltaY;
+  clearTimeout(wheelTimer);
+  wheelTimer=setTimeout(function(){wheelPull=0;if(!refreshing)setPull('');},400);
+  if(wheelPull>=PULL_TRIGGER*3){wheelPull=0;runPullRefresh();}
+  else setPull('pulling',wheelPull/3);
+},{passive:true});
+
+// 다른 앱을 보다가 다이어리로 돌아오면 자동으로 한 번 새로고침
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible'&&me&&couple) refreshFromServer();
+  else if(document.visibilityState==='hidden') flushSave();
+});
 
 function applyRemoteData(data){
   if(!data) return;
