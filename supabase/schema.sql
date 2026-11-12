@@ -7,7 +7,9 @@
 --   profiles        : 사용자 닉네임 (가입하면 자동 생성)
 --   couples         : 커플 다이어리 한 권 (초대 코드로 두 사람 연결)
 --   couple_members  : 다이어리에 속한 사람 (최대 2명, 한 사람은 한 커플만)
---   entries         : 날짜별 기록 (한 줄, 기분)
+--   entries         : 하루 한 줄 기록 + 기분 (한 사람당 하루 하나)
+--   routines        : 둘이 같이 정한 약속(루틴) 목록
+--   routine_checks  : 날짜별로 누가 어떤 약속을 지켰는지
 --   photos          : 사진 정보 (파일은 Storage 'photos' 버킷에 저장)
 --
 -- 보안: 모든 테이블과 사진은 "같은 커플인 두 사람"만 읽고 쓸 수 있음 (RLS)
@@ -47,6 +49,27 @@ create table public.entries (
   updated_at  timestamptz not null default now()
 );
 create index entries_couple_date_idx on public.entries (couple_id, entry_date desc);
+create unique index entries_one_per_day on public.entries (couple_id, author_id, entry_date);
+
+create table public.routines (
+  id          uuid primary key default gen_random_uuid(),
+  couple_id   uuid not null references public.couples(id) on delete cascade,
+  name        text not null check (length(trim(name)) between 1 and 60),
+  sort        int  not null default 0,
+  created_by  uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at  timestamptz not null default now()
+);
+create index routines_couple_idx on public.routines (couple_id, sort, created_at);
+
+create table public.routine_checks (
+  routine_id  uuid not null references public.routines(id) on delete cascade,
+  couple_id   uuid not null references public.couples(id) on delete cascade,
+  user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  check_date  date not null,
+  created_at  timestamptz not null default now(),
+  primary key (routine_id, user_id, check_date)    -- 한 사람이 하루에 한 번만 체크
+);
+create index routine_checks_couple_date_idx on public.routine_checks (couple_id, check_date desc);
 
 create table public.photos (
   id            uuid primary key default gen_random_uuid(),
@@ -90,7 +113,7 @@ create trigger on_auth_user_created
 -- entries 수정 시간 자동 갱신
 create or replace function public.touch_updated_at()
 returns trigger
-language plpgsql
+language plpgsql set search_path = public
 as $$
 begin
   new.updated_at = now();
@@ -158,6 +181,24 @@ revoke execute on function public.join_couple(text) from public, anon;
 grant execute on function public.create_couple() to authenticated;
 grant execute on function public.join_couple(text) to authenticated;
 
+-- 히트맵용: 날짜·사람별 체크 개수 (RLS 그대로 적용되도록 security invoker)
+create or replace function public.couple_check_days(since date)
+returns table (check_date date, user_id uuid, n int)
+language sql stable security invoker set search_path = public
+as $$
+  select c.check_date, c.user_id, count(*)::int
+  from public.routine_checks c
+  where c.couple_id = public.my_couple_id() and c.check_date >= since
+  group by c.check_date, c.user_id
+$$;
+revoke execute on function public.couple_check_days(date) from public, anon;
+grant execute on function public.couple_check_days(date) to authenticated;
+
+-- 트리거 전용 함수는 직접 호출 못 하게, my_couple_id 는 로그인한 사람만
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+revoke execute on function public.my_couple_id() from public, anon;
+grant execute on function public.my_couple_id() to authenticated;
+
 
 -- ---------- 접근 권한 (RLS) ----------
 
@@ -166,6 +207,8 @@ alter table public.couples        enable row level security;
 alter table public.couple_members enable row level security;
 alter table public.entries        enable row level security;
 alter table public.photos         enable row level security;
+alter table public.routines       enable row level security;
+alter table public.routine_checks enable row level security;
 
 -- profiles: 나와 내 짝꿍 것만 보기, 내 것만 수정
 create policy "profiles: 나와 짝꿍 보기" on public.profiles
@@ -200,6 +243,32 @@ create policy "entries: 내 글 수정" on public.entries
 create policy "entries: 내 글 삭제" on public.entries
   for delete to authenticated
   using (author_id = auth.uid() and couple_id = public.my_couple_id());
+
+-- routines: 둘이 같이 정한 약속이라 둘 다 추가·수정·삭제
+create policy "routines: 커플이 보기" on public.routines
+  for select to authenticated using (couple_id = public.my_couple_id());
+create policy "routines: 커플이 추가" on public.routines
+  for insert to authenticated
+  with check (couple_id = public.my_couple_id() and created_by = auth.uid());
+create policy "routines: 커플이 수정" on public.routines
+  for update to authenticated
+  using (couple_id = public.my_couple_id()) with check (couple_id = public.my_couple_id());
+create policy "routines: 커플이 삭제" on public.routines
+  for delete to authenticated using (couple_id = public.my_couple_id());
+
+-- routine_checks: 둘 다 보기, 체크는 각자 자기 것만
+create policy "checks: 커플이 보기" on public.routine_checks
+  for select to authenticated using (couple_id = public.my_couple_id());
+create policy "checks: 내 체크 추가" on public.routine_checks
+  for insert to authenticated
+  with check (
+    user_id = auth.uid()
+    and couple_id = public.my_couple_id()
+    and exists (select 1 from public.routines r where r.id = routine_id and r.couple_id = public.my_couple_id())
+  );
+create policy "checks: 내 체크 취소" on public.routine_checks
+  for delete to authenticated
+  using (user_id = auth.uid() and couple_id = public.my_couple_id());
 
 -- photos: 둘 다 보기, 올린 사람만 수정·삭제
 create policy "photos: 커플이 보기" on public.photos

@@ -258,6 +258,7 @@ body.cover-on{overflow:hidden;}
 .check-box:hover{border-color:var(--sage);}
 .check-box.done{background:var(--sage);border-color:var(--sage);box-shadow:0 1px 0 rgba(255,255,255,.35) inset;}
 .check-label{font-size:13.5px;color:var(--ink);flex:1;transition:all .2s;}
+.check-partner{flex-shrink:0;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;color:var(--rose-deep);background:rgba(246,201,210,.45);border-radius:999px;padding:2px 8px;}
 .check-label.done{color:var(--ink3);text-decoration:line-through;text-decoration-color:rgba(70,55,42,.35);}
 .add-btn{display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--hand);font-size:15px;color:var(--ink2);cursor:pointer;
   border:1.2px dashed rgba(94,74,54,.32);border-radius:9px;padding:9px 12px;background:rgba(255,255,255,.35);margin-top:11px;width:100%;
@@ -481,8 +482,13 @@ var now=new Date();
 document.getElementById('cover-year').textContent=now.getFullYear()+' DIARY';
 document.getElementById('today-date').textContent=now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일';
 
-// ===== 루틴 데이터 =====
+// ===== 루틴(둘이 같이 정한 약속) 데이터 =====
+// 서버 routines / routine_checks 표에서 불러옴.
+// routines: [{id, name, sort, done(오늘 내가 체크), partnerDone(오늘 짝꿍이 체크)}]
+// dayCounts: {'YYYY-MM-DD': 그날 두 사람이 체크한 개수 합} → 히트맵·연속 달성 계산용
 var routines=[];
+var dayCounts={};
+var loadedDay=null;   // routines 의 오늘 체크 상태가 어느 날짜 기준인지
 
 // ===== localStorage =====
 var STORAGE_KEY='diary_tracker_data';
@@ -493,24 +499,11 @@ var MONTHLY_HISTORY_KEY='diary_monthly_history';
 // 지출·저축·메모 화면은 지웠지만, 예전에 저장된 값은 그대로 보존한다
 var storedData={};
 
+// 이 기기에만 남기는 개인 설정(완료 메시지)과 예전 갓생 데이터 보존용. 루틴은 서버에 저장.
 function saveAll(){
-  storedData.routines=routines;
   storedData.completeMsg=document.getElementById('complete-msg').textContent;
   storedData.savedAt=new Date().toISOString();
   localStorage.setItem(STORAGE_KEY,JSON.stringify(storedData));
-  if(typeof syncDiaryWithSupabase==='function'){
-    syncDiaryWithSupabase();
-  }
-}
-
-function checkDailyReset(){
-  var todayKey=getTodayKey();
-  var lastActive=localStorage.getItem('diary_last_active_date');
-  if(lastActive && lastActive!==todayKey){
-    routines.forEach(function(r){r.done=false;});
-    saveAll();
-  }
-  localStorage.setItem('diary_last_active_date', todayKey);
 }
 
 function loadAll(){
@@ -519,12 +512,6 @@ function loadAll(){
   try{
     var data=JSON.parse(raw);
     storedData=data||{};
-    if(data.routines){
-      routines=data.routines;
-      routines.forEach(function(r,i){
-        if(!r.id) r.id='r'+Date.now()+'_'+i+'_'+Math.random().toString(36).slice(2);
-      });
-    }
     if(data.completeMsg) document.getElementById('complete-msg').textContent=data.completeMsg;
   } catch(e){}
 }
@@ -576,12 +563,16 @@ function getTodayKey(){
   var d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
-function saveHeatmapToday(){
-  var p=getPct();
-  var raw=localStorage.getItem(HM_KEY);
-  var hmData=raw?JSON.parse(raw):{};
-  hmData[getTodayKey()]=p.pct;
-  localStorage.setItem(HM_KEY,JSON.stringify(hmData));
+function dateKeyOf(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+// 그날 "우리" 달성률: 두 사람 체크 합 ÷ (약속 수 × 사람 수). 기록 없으면 undefined
+function getDayPct(key){
+  var n=dayCounts[key];
+  if(n===undefined) return undefined;
+  var slots=routines.length*(partner?2:1);
+  if(!slots) return undefined;
+  return Math.min(100,Math.round(n/slots*100));
 }
 function getPctLevel(pct){
   if(pct===undefined||pct===null) return 0;
@@ -594,8 +585,6 @@ function buildHeatmap(){
   var grid=document.getElementById('heatmap');
   var monthRow=document.getElementById('hm-months');
   grid.innerHTML='';monthRow.innerHTML='';
-  var raw=localStorage.getItem(HM_KEY);
-  var hmData=raw?JSON.parse(raw):{};
   var today=new Date();
   var year=today.getFullYear();
   var start=new Date(year,0,1);
@@ -623,7 +612,7 @@ function buildHeatmap(){
     if(isFuture){
       cell.className='hm-cell hm-0';
     } else {
-      var pct=hmData[dateKey];
+      var pct=getDayPct(dateKey);
       var lvl=getPctLevel(pct);
       cell.className='hm-cell hm-'+lvl;
       cell.title=dateKey+' · '+(pct!==undefined?pct+'%':'기록 없음');
@@ -683,19 +672,14 @@ function refreshGodlifeScore(){
   if(badge) badge.textContent=score+'점';
 }
 
+// 둘 다 약속을 전부 지킨 날이 며칠 연속인지. 오늘은 아직 진행 중이면 어제부터 셈
 function getStreak(){
-  var raw=localStorage.getItem(HM_KEY);
-  var hmData=raw?JSON.parse(raw):{};
   var streak=0;
   var d=new Date();
-  while(true){
-    var key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    if(hmData[key]===100){
-      streak++;
-      d.setDate(d.getDate()-1);
-    } else {
-      break;
-    }
+  if(getDayPct(dateKeyOf(d))!==100) d.setDate(d.getDate()-1);
+  while(getDayPct(dateKeyOf(d))===100){
+    streak++;
+    d.setDate(d.getDate()-1);
   }
   return streak;
 }
@@ -712,8 +696,6 @@ function updateAll(){
   var show=p.done===p.total&&p.total>0;
   msg.style.display=show?'block':'none';
   if(wrap) wrap.style.display=show?'block':'none';
-  saveHeatmapToday();
-  saveRoutineHistoryToday();
   buildHeatmap();
   var streak=getStreak();
   var streakEl=document.getElementById('dash-streak');
@@ -731,48 +713,93 @@ function renderChecklist(id){
     el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:16px 0;text-align:center;">루틴을 추가해봐! 👆</div>';
     return;
   }
-  routines.forEach(function(r,i){
+  routines.forEach(function(r){
     var row=document.createElement('div');
     row.className='check-row';
     var box=document.createElement('div');
     box.className='check-box'+(r.done?' done':'');
     if(r.done) box.innerHTML='<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 3.5L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    box.onclick=function(){routines[i].done=!routines[i].done;renderChecklist('dash-checklist');updateAll();saveAll();};
+    box.onclick=function(){toggleCheck(r);};
     var label=document.createElement('span');
     label.className='check-label'+(r.done?' done':'');
     label.textContent=r.name;
     label.style.flex='1';
+    row.appendChild(box);row.appendChild(label);
+    if(partner&&r.partnerDone){
+      var mark=document.createElement('span');
+      mark.className='check-partner';
+      mark.textContent='♥ '+(partner.nickname||'짝꿍');
+      mark.title=(partner.nickname||'짝꿍')+'도 오늘 지켰어요';
+      row.appendChild(mark);
+    }
     var del=document.createElement('span');
     del.textContent='🗑';
     del.style.cssText='font-size:14px;cursor:pointer;opacity:0.4;padding:4px 8px;-webkit-tap-highlight-color:transparent;';
-    del.onclick=function(e){
-      e.stopPropagation();
-      if(confirm("'"+r.name+"' 루틴을 삭제할까?\n삭제하면 되돌릴 수 없어!")){
-        routines.splice(i,1);
-        renderChecklist('dash-checklist');
-        
-        updateAll();saveAll();
-      }
-    };
-    row.appendChild(box);row.appendChild(label);row.appendChild(del);
+    del.onclick=function(e){e.stopPropagation();deleteRoutine(r);};
+    row.appendChild(del);
     el.appendChild(row);
   });
 }
 
-function saveRoutineHistoryToday(){
-  var raw=localStorage.getItem(ROUTINE_HISTORY_KEY);
-  var hist=raw?JSON.parse(raw):{};
-  var todayEntry={};
-  routines.forEach(function(r){ todayEntry[r.id]=!!r.done; });
-  hist[getTodayKey()]=todayEntry;
-  localStorage.setItem(ROUTINE_HISTORY_KEY, JSON.stringify(hist));
+function renderRoutines(){
+  renderChecklist('dash-checklist');
+  updateAll();
 }
 
-function addRoutine(){
-  var name=prompt('추가할 루틴 이름:');
+// --- 서버에 한 건씩 저장 (전체 상태를 통째로 덮어쓰지 않음) ---
+var pendingWrites=[];
+function track(query){
+  var p=Promise.resolve(query);
+  pendingWrites.push(p);
+  p.then(done,done);
+  function done(){var i=pendingWrites.indexOf(p);if(i>=0)pendingWrites.splice(i,1);}
+  return p;
+}
+// 보내는 중인 저장이 있으면 끝날 때까지 기다림 (새로고침·로그아웃 전에)
+async function flushSave(){
+  if(pendingWrites.length) await Promise.allSettled(pendingWrites.slice());
+}
+function saveFailed(){alert('저장하지 못했어요. 인터넷 연결을 확인하고 다시 해주세요.');}
+
+async function toggleCheck(r){
+  if(!sb||!me||!couple||r.busy) return;
+  var today=getTodayKey();
+  if(loadedDay!==today){await refreshFromServer();return;}   // 자정이 지났으면 오늘 기준으로 다시 불러옴
+  var on=!r.done;
+  r.busy=true;
+  r.done=on;
+  dayCounts[today]=Math.max(0,(dayCounts[today]||0)+(on?1:-1));
+  renderRoutines();
+  var res=await track(on
+    ?sb.from('routine_checks').insert({routine_id:r.id,couple_id:couple.id,user_id:me.id,check_date:today})
+    :sb.from('routine_checks').delete().eq('routine_id',r.id).eq('user_id',me.id).eq('check_date',today));
+  r.busy=false;
+  if(res.error&&!(on&&res.error.code==='23505')){   // 23505 = 이미 체크돼 있음 → 괜찮음
+    r.done=!on;
+    dayCounts[today]=Math.max(0,(dayCounts[today]||0)+(on?-1:1));
+    renderRoutines();
+    saveFailed();
+  }
+}
+
+async function addRoutine(){
+  if(!sb||!me||!couple) return;
+  var name=prompt('둘이 같이 지킬 약속(루틴) 이름:');
   if(!name||!name.trim()) return;
-  routines.push({id:'r'+Date.now()+'_'+Math.random().toString(36).slice(2),name:name.trim(),done:false});
-  renderChecklist('dash-checklist');updateAll();saveAll();
+  name=name.trim().slice(0,60);
+  var sort=routines.reduce(function(m,r){return Math.max(m,r.sort||0);},0)+1;
+  var res=await track(sb.from('routines').insert({couple_id:couple.id,name:name,sort:sort}).select('id,name,sort').single());
+  if(res.error){saveFailed();return;}
+  routines.push({id:res.data.id,name:res.data.name,sort:res.data.sort,done:false,partnerDone:false});
+  renderRoutines();
+}
+
+async function deleteRoutine(r){
+  if(!sb||!me||!couple) return;
+  if(!confirm("'"+r.name+"' 약속을 지울까?\n짝꿍 다이어리에서도 같이 사라지고, 지금까지 체크한 기록도 지워져.")) return;
+  var res=await track(sb.from('routines').delete().eq('id',r.id));
+  if(res.error){saveFailed();return;}
+  try{await loadFromSupabase();}catch(err){console.error('reload after delete:',err);}
 }
 
 // ===== 탭 =====
@@ -905,7 +932,6 @@ function applyCompleteMsg(){
 
 // ===== 초기화 =====
 loadAll();
-checkDailyReset();
 checkMonthlyReset();
 buildHeatmap();
 initDonut();
@@ -996,10 +1022,8 @@ async function loadCouple(){
 async function refreshSession(session){
   me=session?session.user:null;
   try{
-    if(me){
-      await loadCouple();
-      if(couple) await loadFromSupabase();
-    }
+    if(me) await loadCouple(); else {couple=null;partner=null;myProfile=null;}
+    if(couple) await loadFromSupabase(); else clearRoutines();
     renderGate();
   }catch(err){
     document.getElementById('gate-error-msg').textContent='기록을 불러오지 못했어요. 잠시 후 새로고침해 주세요.';
@@ -1095,67 +1119,42 @@ async function signOut(){
   await refreshSession(null);
 }
 
-// ===== Supabase 저장 · 당겨서 새로고침 =====
-// 내가 고친 건 서버에 저장되고, 짝꿍은 화면을 위로 당기면(새로고침) 최신 상태를 받아온다.
+// ===== Supabase 불러오기 · 당겨서 새로고침 =====
+// 체크·추가·삭제는 누를 때마다 그 한 건만 서버에 저장되고(위 toggleCheck 등),
+// 짝꿍은 화면을 위로 당기면(새로고침) 최신 상태를 받아온다.
 // (실시간으로 서로 화면을 밀어 넣는 방식은 쓰지 않음)
-var dbSaveTimer=null;
 
-function buildSyncPayload(){
-  var rawHM=localStorage.getItem(HM_KEY);
-  var rawHist=localStorage.getItem(ROUTINE_HISTORY_KEY);
-  return {
-    routines:routines,
-    completeMsg:document.getElementById('complete-msg').textContent,
-    hmData:rawHM?JSON.parse(rawHM):{},
-    routineHist:rawHist?JSON.parse(rawHist):{},
-    storedData:storedData,
-    updatedAt:new Date().toISOString()
-  };
-}
-
-async function saveNow(){
+// 약속 목록 + 오늘 체크 + 1년치 날짜별 체크 수를 서버에서 받아옴
+async function loadFromSupabase(){
   if(!sb||!couple||!me) return;
-  try{
-    var contentStr=JSON.stringify(buildSyncPayload());
-    var todayStr=getTodayKey();
-    var existing=await sb.from('entries')
-      .select('id')
-      .eq('couple_id',couple.id)
-      .eq('author_id',me.id)
-      .eq('entry_date',todayStr)
-      .maybeSingle();
-    if(existing.data&&existing.data.id){
-      await sb.from('entries').update({content:contentStr}).eq('id',existing.data.id);
-    } else {
-      await sb.from('entries').insert({
-        couple_id:couple.id,
-        author_id:me.id,
-        entry_date:todayStr,
-        content:contentStr,
-        mood:'routine_sync'
-      });
-    }
-  }catch(err){
-    console.error('Supabase save error:',err);
-  }
+  var today=getTodayKey();
+  var since=new Date();since.setFullYear(since.getFullYear()-1);
+  var res=await Promise.all([
+    sb.from('routines').select('id,name,sort').eq('couple_id',couple.id).order('sort').order('created_at'),
+    sb.from('routine_checks').select('routine_id,user_id').eq('couple_id',couple.id).eq('check_date',today),
+    sb.rpc('couple_check_days',{since:dateKeyOf(since)})
+  ]);
+  res.forEach(function(r){if(r.error) throw r.error;});
+  var byId={};
+  routines=res[0].data.map(function(r){
+    var item={id:r.id,name:r.name,sort:r.sort,done:false,partnerDone:false};
+    byId[r.id]=item;
+    return item;
+  });
+  res[1].data.forEach(function(c){
+    var r=byId[c.routine_id];
+    if(!r) return;
+    if(c.user_id===me.id) r.done=true; else r.partnerDone=true;
+  });
+  dayCounts={};
+  res[2].data.forEach(function(d){dayCounts[d.check_date]=(dayCounts[d.check_date]||0)+d.n;});
+  loadedDay=today;
+  renderRoutines();
 }
 
-function saveToSupabase(){
-  if(!sb||!couple||!me) return;
-  if(dbSaveTimer) clearTimeout(dbSaveTimer);
-  dbSaveTimer=setTimeout(function(){dbSaveTimer=null;saveNow();},400);
-}
-
-// 아직 안 보낸 저장이 있으면 바로 보내고 끝날 때까지 기다림 (새로고침·로그아웃 전에)
-async function flushSave(){
-  if(!dbSaveTimer) return;
-  clearTimeout(dbSaveTimer);
-  dbSaveTimer=null;
-  await saveNow();
-}
-
-function syncDiaryWithSupabase(){
-  saveToSupabase();
+function clearRoutines(){
+  routines=[];dayCounts={};loadedDay=null;
+  renderRoutines();
 }
 
 // 서버에서 최신 상태(짝꿍 연결 여부 + 다이어리 내용)를 다시 받아옴
@@ -1166,7 +1165,7 @@ async function refreshFromServer(){
   try{
     await flushSave();
     await loadCouple();
-    if(couple) await loadFromSupabase();
+    if(couple) await loadFromSupabase(); else clearRoutines();
     renderGate();
     return true;
   }catch(err){
@@ -1240,71 +1239,6 @@ document.addEventListener('visibilitychange',function(){
   if(document.visibilityState==='visible'&&me&&couple) refreshFromServer();
   else if(document.visibilityState==='hidden') flushSave();
 });
-
-function applyRemoteData(data){
-  if(!data) return;
-  if(data.senderId&&me&&data.senderId===me.id) return;
-
-  if(data.routines&&Array.isArray(data.routines)){
-    routines=data.routines;
-    storedData.routines=routines;
-  }
-  if(data.completeMsg){
-    var msgEl=document.getElementById('complete-msg');
-    if(msgEl) msgEl.textContent=data.completeMsg;
-    storedData.completeMsg=data.completeMsg;
-    localStorage.setItem('diary_complete_msg',data.completeMsg);
-  }
-  if(data.storedData&&typeof data.storedData==='object'){
-    storedData=Object.assign(storedData,data.storedData);
-    storedData.routines=routines;
-  }
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(storedData));
-
-  if(data.hmData){
-    localStorage.setItem(HM_KEY,JSON.stringify(data.hmData));
-  }
-  if(data.routineHist){
-    localStorage.setItem(ROUTINE_HISTORY_KEY,JSON.stringify(data.routineHist));
-  }
-
-  renderChecklist('dash-checklist');
-  updateAll();
-  buildHeatmap();
-  refreshGodlifeScore();
-  updateDashExpense();
-}
-
-async function loadFromSupabase(){
-  if(!sb||!couple||!me) return;
-  try{
-    var res=await sb.from('entries')
-      .select('content,updated_at,created_at')
-      .eq('couple_id',couple.id)
-      .order('updated_at',{ascending:false})
-      .limit(5);
-
-    if(res.error){
-      console.error('loadFromSupabase query error:',res.error);
-      return;
-    }
-    if(res.data&&res.data.length>0){
-      for(var i=0;i<res.data.length;i++){
-        try{
-          var parsed=JSON.parse(res.data[i].content);
-          if(parsed&&(parsed.routines||parsed.hmData||parsed.storedData)){
-            applyRemoteData(parsed);
-            return;
-          }
-        }catch(e){}
-      }
-    } else {
-      saveToSupabase();
-    }
-  }catch(err){
-    console.error('loadFromSupabase error:',err);
-  }
-}
 
 if(sb){
   sb.auth.getSession().then(function(r){refreshSession(r.data.session);});
