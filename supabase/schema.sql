@@ -232,3 +232,23 @@ create policy "storage: 커플 사진 올리기" on storage.objects
 create policy "storage: 커플 사진 삭제" on storage.objects
   for delete to authenticated
   using (bucket_id = 'photos' and (storage.foldername(name))[1] = public.my_couple_id()::text);
+
+
+-- ---------- 실시간 반영 (Realtime) ----------
+-- 짝꿍이 기록·사진을 올리거나 다이어리에 들어오면 내 화면에 바로 반영되도록
+-- 테이블 변경 알림을 켬. 받는 내용은 위 RLS 규칙대로 같은 커플 것만 전달됨.
+-- 이미 등록된 테이블은 건너뛰므로 여러 번 실행해도 안전.
+
+do $$
+declare t text;
+begin
+  foreach t in array array['couple_members', 'entries', 'photos'] loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end
+$$;
