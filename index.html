@@ -9,7 +9,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#E6DCCB">
 <title>갓생 다이어리</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- 보안: 정해진 곳(우리 Supabase, 글꼴 CDN)과만 통신하고, 다른 곳의 스크립트는 못 돌게 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data: blob: https://tzkygyodhfspoxoqoscn.supabase.co; connect-src 'self' https://tzkygyodhfspoxoqoscn.supabase.co wss://tzkygyodhfspoxoqoscn.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<!-- 버전 고정 + 무결성 해시: CDN 파일이 바뀌면 브라우저가 실행을 거부함 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 @import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap');
@@ -629,6 +633,7 @@ document.getElementById('join-form').addEventListener('submit',async function(e)
   if(code.length!==6){msg.textContent='초대 코드 6자리를 입력해 주세요.';return;}
   var r=await sb.rpc('join_couple',{code:code});
   if(r.error){msg.textContent=r.error.message;return;}
+  if(!r.data||!r.data.id){msg.textContent='초대 코드를 찾을 수 없어요. 다시 확인해 주세요. (15분에 5번까지)';return;}
   await refreshSession({user:me});
 });
 

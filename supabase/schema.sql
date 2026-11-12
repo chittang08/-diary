@@ -4,15 +4,21 @@
 -- 여러 번 실행하지 말고 새 프로젝트에서 한 번만 실행하세요.
 --
 -- 구조
---   profiles        : 사용자 닉네임 (가입하면 자동 생성)
---   couples         : 커플 다이어리 한 권 (초대 코드로 두 사람 연결)
---   couple_members  : 다이어리에 속한 사람 (최대 2명, 한 사람은 한 커플만)
---   entries         : 하루 한 줄 기록 + 기분 (한 사람당 하루 하나)
---   routines        : 둘이 같이 정한 약속(루틴) 목록
---   routine_checks  : 날짜별로 누가 어떤 약속을 지켰는지
---   photos          : 사진 정보 (파일은 Storage 'photos' 버킷에 저장)
+--   profiles              : 사용자 닉네임 (가입하면 자동 생성)
+--   couples               : 커플 다이어리 한 권 (초대 코드로 두 사람 연결)
+--   couple_members        : 다이어리에 속한 사람 (최대 2명, 한 사람은 한 커플만)
+--   entries               : 하루 한 줄 기록 + 기분 (한 사람당 하루 하나)
+--   routines              : 둘이 같이 정한 약속(루틴) 목록
+--   routine_checks        : 날짜별로 누가 어떤 약속을 지켰는지
+--   photos                : 사진 정보 (파일은 Storage 'photos' 버킷에 저장)
+--   push_subscriptions    : 알림 받을 기기 (Web Push 구독 정보)
+--   couple_join_attempts  : 초대 코드 틀린 기록 (대입 공격 막기용, 아무도 직접 못 봄)
 --
--- 보안: 모든 테이블과 사진은 "같은 커플인 두 사람"만 읽고 쓸 수 있음 (RLS)
+-- 보안
+--   - 모든 테이블과 사진은 "같은 커플인 두 사람"만 읽고 쓸 수 있음 (RLS)
+--   - 로그인 안 한 사람(anon)은 테이블·함수에 아예 접근 권한이 없음
+--   - 수정은 바꿔도 되는 칸만 열어 둠 (예: 커플은 사귄 날만)
+--   - 초대 코드는 15분 안에 5번 틀리면 잠시 잠김
 -- =====================================================================
 
 
@@ -20,13 +26,13 @@
 
 create table public.profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
-  nickname    text,
+  nickname    text check (nickname is null or char_length(nickname) between 1 and 20),
   created_at  timestamptz not null default now()
 );
 
 create table public.couples (
   id           uuid primary key default gen_random_uuid(),
-  invite_code  text not null unique default upper(substr(md5(gen_random_uuid()::text), 1, 6)),
+  invite_code  text not null unique,                   -- 기본값은 아래 generate_invite_code() 에서 지정
   started_on   date,                                   -- 사귄 날 (D-day 계산용)
   created_at   timestamptz not null default now()
 );
@@ -43,8 +49,8 @@ create table public.entries (
   couple_id   uuid not null references public.couples(id) on delete cascade,
   author_id   uuid not null default auth.uid() references auth.users(id) on delete cascade,
   entry_date  date not null default current_date,
-  content     text not null default '',
-  mood        text,
+  content     text not null default '' check (char_length(content) <= 2000),
+  mood        text check (mood is null or char_length(mood) <= 20),
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -76,12 +82,28 @@ create table public.photos (
   couple_id     uuid not null references public.couples(id) on delete cascade,
   entry_id      uuid references public.entries(id) on delete set null,
   uploader_id   uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  storage_path  text not null unique,                  -- '{couple_id}/{파일이름}'
-  caption       text,
+  storage_path  text not null unique check (char_length(storage_path) <= 300),   -- '{couple_id}/{파일이름}'
+  caption       text check (caption is null or char_length(caption) <= 200),
   taken_on      date not null default current_date,
   created_at    timestamptz not null default now()
 );
 create index photos_couple_date_idx on public.photos (couple_id, taken_on desc);
+
+create table public.push_subscriptions (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  endpoint    text not null unique check (endpoint like 'https://%' and char_length(endpoint) <= 1000),
+  p256dh      text not null,
+  auth        text not null,
+  created_at  timestamptz not null default now(),
+  check (char_length(p256dh) <= 200 and char_length(auth) <= 100)
+);
+
+create table public.couple_join_attempts (
+  user_id       uuid not null references auth.users(id) on delete cascade,
+  attempted_at  timestamptz not null default now()
+);
+create index couple_join_attempts_idx on public.couple_join_attempts (user_id, attempted_at desc);
 
 
 -- ---------- 도우미 함수 ----------
@@ -94,14 +116,15 @@ as $$
   select couple_id from public.couple_members where user_id = auth.uid()
 $$;
 
--- 가입하면 profiles 자동 생성
+-- 가입하면 profiles 자동 생성 (닉네임은 20자까지, 없으면 이메일 앞부분)
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql security definer set search_path = public
 as $$
 begin
   insert into public.profiles (id, nickname)
-  values (new.id, coalesce(new.raw_user_meta_data->>'nickname', split_part(new.email, '@', 1)));
+  values (new.id, coalesce(left(nullif(trim(new.raw_user_meta_data->>'nickname'), ''), 20),
+                           left(split_part(new.email, '@', 1), 20)));
   return new;
 end
 $$;
@@ -124,6 +147,46 @@ $$;
 create trigger entries_touch_updated_at
   before update on public.entries
   for each row execute function public.touch_updated_at();
+
+-- 초대 코드: 알파벳 2개(중복 허용) + 서로 다른 숫자 2개 + 서로 다른 알파벳 2개 (예: KK37BX)
+-- 예측할 수 없도록 암호학적 난수(gen_random_bytes) 사용
+create or replace function public.generate_invite_code()
+returns text
+language plpgsql volatile set search_path = public
+as $$
+declare
+  letters constant text := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  b bytea; d1 int; d2 int; l1 int; l2 int; code text;
+begin
+  loop
+    b  := extensions.gen_random_bytes(18);
+    d1 := ((get_byte(b,0)<<16) | (get_byte(b,1)<<8) | get_byte(b,2)) % 10;
+    d2 := ((get_byte(b,3)<<16) | (get_byte(b,4)<<8) | get_byte(b,5)) % 9;  if d2 >= d1 then d2 := d2 + 1; end if;
+    l1 := ((get_byte(b,6)<<16) | (get_byte(b,7)<<8) | get_byte(b,8)) % 26;
+    l2 := ((get_byte(b,9)<<16) | (get_byte(b,10)<<8) | get_byte(b,11)) % 25; if l2 >= l1 then l2 := l2 + 1; end if;
+    code := substr(letters, ((get_byte(b,12)<<16) | (get_byte(b,13)<<8) | get_byte(b,14)) % 26 + 1, 1)
+         || substr(letters, ((get_byte(b,15)<<16) | (get_byte(b,16)<<8) | get_byte(b,17)) % 26 + 1, 1)
+         || d1::text || d2::text
+         || substr(letters, l1 + 1, 1)
+         || substr(letters, l2 + 1, 1);
+    exit when not exists (select 1 from public.couples where invite_code = code);
+  end loop;
+  return code;
+end
+$$;
+
+alter table public.couples alter column invite_code set default public.generate_invite_code();
+
+-- 히트맵용: 날짜·사람별 체크 개수 (RLS 그대로 적용되도록 security invoker)
+create or replace function public.couple_check_days(since date)
+returns table (check_date date, user_id uuid, n int)
+language sql stable security invoker set search_path = public
+as $$
+  select c.check_date, c.user_id, count(*)::int
+  from public.routine_checks c
+  where c.couple_id = public.my_couple_id() and c.check_date >= since
+  group by c.check_date, c.user_id
+$$;
 
 
 -- ---------- 커플 만들기 / 초대 코드로 연결 ----------
@@ -148,12 +211,12 @@ begin
 end
 $$;
 
--- 상대가 준 초대 코드로 연결
+-- 상대가 준 초대 코드로 연결. 코드를 못 찾으면 null (틀린 횟수 기록), 15분에 5번 틀리면 잠금
 create or replace function public.join_couple(code text)
 returns public.couples
 language plpgsql security definer set search_path = public
 as $$
-declare c public.couples;
+declare c public.couples; tries int;
 begin
   if auth.uid() is null then
     raise exception '로그인이 필요해요';
@@ -162,53 +225,78 @@ begin
     raise exception '이미 커플 다이어리에 연결되어 있어요';
   end if;
 
-  select * into c from public.couples where invite_code = upper(trim(code)) for update;
+  select count(*) into tries from public.couple_join_attempts
+  where user_id = auth.uid() and attempted_at > now() - interval '15 minutes';
+  if tries >= 5 then
+    raise exception '초대 코드를 너무 많이 틀렸어요. 15분 뒤에 다시 시도해 주세요.';
+  end if;
+
+  select * into c from public.couples
+  where invite_code = upper(trim(left(coalesce(code, ''), 12))) for update;
   if not found then
-    raise exception '초대 코드를 찾을 수 없어요';
+    -- 에러를 내면 기록까지 취소되므로, 틀린 횟수를 남기고 빈 값으로 돌려줌
+    insert into public.couple_join_attempts (user_id) values (auth.uid());
+    return null;
   end if;
   if (select count(*) from public.couple_members where couple_id = c.id) >= 2 then
     raise exception '이미 두 사람이 연결된 다이어리예요';
   end if;
 
   insert into public.couple_members (couple_id, user_id) values (c.id, auth.uid());
+  delete from public.couple_join_attempts where user_id = auth.uid();
   return c;
 end
 $$;
 
--- 함수는 기본으로 public(=누구나)에게 열려 있으므로, 로그인한 사람만 부를 수 있게 좁힘
-revoke execute on function public.create_couple() from public, anon;
-revoke execute on function public.join_couple(text) from public, anon;
-grant execute on function public.create_couple() to authenticated;
-grant execute on function public.join_couple(text) to authenticated;
 
--- 히트맵용: 날짜·사람별 체크 개수 (RLS 그대로 적용되도록 security invoker)
-create or replace function public.couple_check_days(since date)
-returns table (check_date date, user_id uuid, n int)
-language sql stable security invoker set search_path = public
-as $$
-  select c.check_date, c.user_id, count(*)::int
-  from public.routine_checks c
-  where c.couple_id = public.my_couple_id() and c.check_date >= since
-  group by c.check_date, c.user_id
-$$;
-revoke execute on function public.couple_check_days(date) from public, anon;
-grant execute on function public.couple_check_days(date) to authenticated;
+-- ---------- 권한 (누가 무엇을 할 수 있나) ----------
 
--- 트리거 전용 함수는 직접 호출 못 하게, my_couple_id 는 로그인한 사람만
-revoke execute on function public.handle_new_user() from public, anon, authenticated;
-revoke execute on function public.my_couple_id() from public, anon;
-grant execute on function public.my_couple_id() to authenticated;
+-- 로그인 안 한 사람(anon)은 테이블에 아예 손 못 댐. 로그인한 사람도 TRUNCATE 등 위험 권한 제거
+revoke all on all tables in schema public from anon;
+revoke truncate, trigger, references on all tables in schema public from authenticated;
+alter default privileges in schema public revoke all on tables from anon;
+
+-- 커플·멤버·프로필의 생성·삭제는 정해진 길(위 함수, 가입 트리거)로만
+revoke insert, delete on public.couples, public.couple_members, public.profiles from authenticated;
+revoke update on public.couple_members from authenticated;
+revoke all on public.couple_join_attempts from anon, authenticated;
+
+-- 수정은 바꿔도 되는 칸만
+revoke update on public.couples, public.profiles, public.entries, public.photos, public.routines, public.push_subscriptions from authenticated;
+grant update (started_on)                  on public.couples            to authenticated;
+grant update (nickname)                    on public.profiles           to authenticated;
+grant update (content, mood)               on public.entries            to authenticated;
+grant update (caption, taken_on, entry_id) on public.photos             to authenticated;
+grant update (name, sort)                  on public.routines           to authenticated;
+grant update (p256dh, auth)                on public.push_subscriptions to authenticated;
+
+-- 함수는 기본으로 누구나 부를 수 있으므로 필요한 것만 로그인한 사람에게 열어 줌
+revoke execute on function public.create_couple()          from public, anon;
+revoke execute on function public.join_couple(text)        from public, anon;
+revoke execute on function public.my_couple_id()           from public, anon;
+revoke execute on function public.couple_check_days(date)  from public, anon;
+grant  execute on function public.create_couple()          to authenticated;
+grant  execute on function public.join_couple(text)        to authenticated;
+grant  execute on function public.my_couple_id()           to authenticated;   -- RLS 규칙 안에서 쓰임
+grant  execute on function public.couple_check_days(date)  to authenticated;
+-- 트리거·기본값 전용 함수는 직접 못 부르게
+revoke execute on function public.handle_new_user()        from public, anon, authenticated;
+revoke execute on function public.touch_updated_at()       from public, anon, authenticated;
+revoke execute on function public.generate_invite_code()   from public, anon, authenticated;
+alter default privileges in schema public revoke execute on functions from public, anon;
 
 
--- ---------- 접근 권한 (RLS) ----------
+-- ---------- 접근 규칙 (RLS) ----------
 
-alter table public.profiles       enable row level security;
-alter table public.couples        enable row level security;
-alter table public.couple_members enable row level security;
-alter table public.entries        enable row level security;
-alter table public.photos         enable row level security;
-alter table public.routines       enable row level security;
-alter table public.routine_checks enable row level security;
+alter table public.profiles             enable row level security;
+alter table public.couples              enable row level security;
+alter table public.couple_members       enable row level security;
+alter table public.entries              enable row level security;
+alter table public.photos               enable row level security;
+alter table public.routines             enable row level security;
+alter table public.routine_checks       enable row level security;
+alter table public.push_subscriptions   enable row level security;
+alter table public.couple_join_attempts enable row level security;   -- 규칙 없음 = 함수 말고는 아무도 못 봄
 
 -- profiles: 나와 내 짝꿍 것만 보기, 내 것만 수정
 create policy "profiles: 나와 짝꿍 보기" on public.profiles
@@ -219,7 +307,7 @@ create policy "profiles: 내 것 수정" on public.profiles
   for update to authenticated
   using (id = auth.uid()) with check (id = auth.uid());
 
--- couples: 내 커플만 보기/수정 (사귄 날 등). 생성·연결은 위 함수로만.
+-- couples: 내 커플만 보기/수정 (사귄 날). 생성·연결은 위 함수로만.
 create policy "couples: 내 커플 보기" on public.couples
   for select to authenticated using (id = public.my_couple_id());
 create policy "couples: 내 커플 수정" on public.couples
@@ -270,27 +358,46 @@ create policy "checks: 내 체크 취소" on public.routine_checks
   for delete to authenticated
   using (user_id = auth.uid() and couple_id = public.my_couple_id());
 
--- photos: 둘 다 보기, 올린 사람만 수정·삭제
+-- photos: 둘 다 보기, 올린 사람만 수정·삭제. 경로는 우리 커플 폴더만, 연결 기록도 우리 커플 것만
 create policy "photos: 커플이 보기" on public.photos
   for select to authenticated using (couple_id = public.my_couple_id());
 create policy "photos: 내가 올리기" on public.photos
   for insert to authenticated
-  with check (couple_id = public.my_couple_id() and uploader_id = auth.uid());
+  with check (
+    couple_id = public.my_couple_id() and uploader_id = auth.uid()
+    and storage_path like public.my_couple_id()::text || '/%'
+    and (entry_id is null or exists (select 1 from public.entries e where e.id = entry_id and e.couple_id = public.my_couple_id()))
+  );
 create policy "photos: 내 사진 수정" on public.photos
   for update to authenticated
   using (uploader_id = auth.uid() and couple_id = public.my_couple_id())
-  with check (uploader_id = auth.uid() and couple_id = public.my_couple_id());
+  with check (
+    uploader_id = auth.uid() and couple_id = public.my_couple_id()
+    and (entry_id is null or exists (select 1 from public.entries e where e.id = entry_id and e.couple_id = public.my_couple_id()))
+  );
 create policy "photos: 내 사진 삭제" on public.photos
   for delete to authenticated
   using (uploader_id = auth.uid() and couple_id = public.my_couple_id());
 
+-- push_subscriptions: 내 기기만
+create policy "push: 내 기기 보기" on public.push_subscriptions
+  for select to authenticated using (user_id = auth.uid());
+create policy "push: 내 기기 등록" on public.push_subscriptions
+  for insert to authenticated with check (user_id = auth.uid());
+create policy "push: 내 기기 수정" on public.push_subscriptions
+  for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "push: 내 기기 삭제" on public.push_subscriptions
+  for delete to authenticated using (user_id = auth.uid());
+
 
 -- ---------- 사진 저장소 (Storage) ----------
--- 비공개 버킷. 파일 경로 첫 폴더가 커플 id 인 것만 그 커플이 접근 가능.
+-- 비공개 버킷, 10MB 이하 이미지 파일만. 파일 경로 첫 폴더가 커플 id 인 것만 그 커플이 접근 가능.
 
-insert into storage.buckets (id, name, public)
-values ('photos', 'photos', false)
-on conflict (id) do nothing;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('photos', 'photos', false, 10485760,
+        array['image/jpeg','image/png','image/webp','image/heic','image/heif','image/gif'])
+on conflict (id) do update
+  set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
 create policy "storage: 커플 사진 보기" on storage.objects
   for select to authenticated
@@ -304,7 +411,6 @@ create policy "storage: 커플 사진 삭제" on storage.objects
 
 
 -- ---------- 실시간 반영 (Realtime) ----------
--- 짝꿍이 기록·사진을 올리거나 다이어리에 들어오면 내 화면에 바로 반영되도록
 -- 테이블 변경 알림을 켬. 받는 내용은 위 RLS 규칙대로 같은 커플 것만 전달됨.
 -- 이미 등록된 테이블은 건너뛰므로 여러 번 실행해도 안전.
 
