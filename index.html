@@ -145,6 +145,9 @@ body{background-color:var(--desk);color:var(--ink);font-family:var(--body);font-
 .gate-msg.ok{color:var(--green);}
 .gate-link{display:block;margin:16px auto 0;border:none;background:none;font-family:var(--hand);font-size:14px;color:var(--ink3);text-decoration:underline;text-underline-offset:3px;}
 .gate-link:hover{color:var(--rose-deep);}
+.account-delete{font-size:12.5px;opacity:.65;}
+.account-delete:hover{opacity:1;color:var(--red);}
+.paper>.account-delete{margin:10px auto 0;}
 .invite-code{font-family:var(--hand);font-size:42px;font-weight:700;letter-spacing:.2em;text-align:center;color:var(--rose-deep);
   background:rgba(255,253,245,.7);border:1.5px dashed rgba(191,110,126,.55);border-radius:10px;padding:12px 0 14px .2em;margin-bottom:12px;}
 
@@ -291,6 +294,7 @@ html,body{overscroll-behavior-y:contain;}
 
   </div>
   <div class="page-foot"><span>‹</span><span id="page-num">1 / 1</span><span>›</span></div>
+  <button type="button" class="gate-link account-delete" id="btn-delete" onclick="deleteAccount()" hidden>탈퇴하기</button>
   </div>
  </div>
 </div>
@@ -335,6 +339,7 @@ html,body{overscroll-behavior-y:contain;}
       </form>
       <div class="gate-msg" id="couple-msg"></div>
       <button type="button" class="gate-link" onclick="signOut()">다른 계정으로 로그인</button>
+      <button type="button" class="gate-link account-delete" onclick="deleteAccount()">탈퇴하기</button>
     </section>
 
     <section id="gate-wait" hidden>
@@ -518,6 +523,7 @@ function renderGate(){
 function renderCoupleHeader(){
   var el=document.getElementById('header-couple');
   document.getElementById('btn-logout').hidden=!me;
+  document.getElementById('btn-delete').hidden=!me;
   if(!couple){el.innerHTML='';return;}
   var myNick=(myProfile&&myProfile.nickname)||'나';
   el.innerHTML='';
@@ -643,6 +649,35 @@ function copyInvite(el){
   if(!couple||!couple.invite_code) return;
   var done=function(){var t=el.textContent;el.textContent='복사했어요!';setTimeout(function(){el.textContent=t;},1200);};
   if(navigator.clipboard) navigator.clipboard.writeText(couple.invite_code).then(done,function(){});
+}
+
+// 탈퇴: 내 계정과 내가 쓴 기록·사진이 지워짐. 짝꿍 기록은 남고, 짝꿍은 새 초대 코드를 받음.
+async function deleteAccount(){
+  if(!sb||!me) return;
+  var typed=prompt('정말 탈퇴할까요?\n내 계정과 내가 쓴 기록·사진이 모두 지워지고 되돌릴 수 없어요.\n'
+    +(partner?'짝꿍의 기록은 남고, 짝꿍은 새 초대 코드로 다른 사람을 초대할 수 있어요.\n':'')
+    +'\n계속하려면 "탈퇴"라고 입력해 주세요.');
+  if(typed===null) return;
+  if(typed.trim()!=='탈퇴'){alert('"탈퇴"라고 정확히 입력해야 진행돼요.');return;}
+  try{
+    if(couple){   // 내가 올린 사진 파일부터 지움 (DB 행은 서버 함수가 지움)
+      var ph=await sb.from('photos').select('storage_path').eq('uploader_id',me.id);
+      var paths=(ph.data||[]).map(function(p){return p.storage_path;});
+      if(paths.length){var rm=await sb.storage.from('photos').remove(paths);if(rm.error) throw rm.error;}
+    }
+    var r=await sb.rpc('delete_my_account');
+    if(r.error) throw r.error;
+  }catch(err){
+    console.error('delete account:',err);
+    alert('탈퇴하지 못했어요. 인터넷 연결을 확인하고 다시 해주세요.');
+    return;
+  }
+  try{await sb.auth.signOut({scope:'local'});}catch(e){}   // 계정은 이미 없으니 이 기기 세션만 정리
+  me=null;couple=null;partner=null;myProfile=null;justCreated=false;
+  setAuthMode('login');
+  closeBook();
+  renderGate();
+  var msg=document.getElementById('auth-msg');msg.className='gate-msg ok';msg.textContent='탈퇴가 완료됐어요. 그동안 고마웠어요.';
 }
 
 async function signOut(){

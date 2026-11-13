@@ -62,7 +62,7 @@ create table public.routines (
   couple_id   uuid not null references public.couples(id) on delete cascade,
   name        text not null check (length(trim(name)) between 1 and 60),
   sort        int  not null default 0,
-  created_by  uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_by  uuid default auth.uid() references auth.users(id) on delete set null,   -- 만든 사람이 탈퇴해도 약속은 남김
   created_at  timestamptz not null default now()
 );
 create index routines_couple_idx on public.routines (couple_id, sort, created_at);
@@ -252,6 +252,38 @@ end
 $$;
 
 
+-- 탈퇴: 내 계정과 내 기록·사진 정보가 지워짐 (연결된 표는 cascade).
+-- 짝꿍이 남으면 다이어리는 유지되고 새 초대 코드를 줌. 혼자였다면 다이어리도 지움.
+-- (사진 파일 자체는 앱이 Storage API 로 먼저 지움)
+create or replace function public.delete_my_account()
+returns void
+language plpgsql security definer set search_path = public
+as $$
+declare uid uuid := auth.uid(); cid uuid; remaining int;
+begin
+  if uid is null then
+    raise exception '로그인이 필요해요';
+  end if;
+  if not exists (select 1 from auth.users where id = uid) then
+    raise exception '이미 탈퇴한 계정이에요';
+  end if;
+  select couple_id into cid from public.couple_members where user_id = uid;
+
+  delete from auth.users where id = uid;
+
+  if cid is not null then
+    select count(*) into remaining from public.couple_members where couple_id = cid;
+    if remaining = 0 then
+      delete from public.couples where id = cid;
+    else
+      update public.couples set invite_code = public.generate_invite_code()
+      where id = cid and invite_code is null;
+    end if;
+  end if;
+end
+$$;
+
+
 -- ---------- 권한 (누가 무엇을 할 수 있나) ----------
 
 -- 로그인 안 한 사람(anon)은 테이블에 아예 손 못 댐. 로그인한 사람도 TRUNCATE 등 위험 권한 제거
@@ -278,6 +310,8 @@ revoke execute on function public.create_couple()          from public, anon;
 revoke execute on function public.join_couple(text)        from public, anon;
 revoke execute on function public.my_couple_id()           from public, anon;
 revoke execute on function public.couple_check_days(date)  from public, anon;
+revoke execute on function public.delete_my_account()      from public, anon;
+grant  execute on function public.delete_my_account()      to authenticated;
 grant  execute on function public.create_couple()          to authenticated;
 grant  execute on function public.join_couple(text)        to authenticated;
 grant  execute on function public.my_couple_id()           to authenticated;   -- RLS 규칙 안에서 쓰임
