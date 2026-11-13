@@ -25,7 +25,7 @@
   --bg:#FCF6E8;--bg2:#FFFDF5;--bg3:#F2E8D5;--border:rgba(70,55,42,0.12);
   --desk:#E7DBC6;--paper:#FCF6E8;--paper2:#FFFCF3;
   --cover:#BC5E6B;--cover-ink:#8E3F49;--band:#F8EFDC;
-  --tab1:#F6C9D2;--rose:#BF6E7E;--rose-deep:#A15A66;
+  --tab1:#F6C9D2;--tab2:#F6E3B4;--rose:#BF6E7E;--rose-deep:#A15A66;
   --hand:'Gaegu','Pretendard Variable',system-ui,sans-serif;
   --body:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo',sans-serif;
   /* 종이 섬유 질감 */
@@ -356,6 +356,75 @@ body.cover-on{overflow:hidden;}
   .day-title{font-size:22px;}
   .day-photos{gap:10px 8px;}
 }
+/* ===== 사진첩 (앨범 책장 · 앨범 페이지) ===== */
+.album-panel{position:relative;margin:6px 8px 12px 4px;padding:18px 18px 20px;border-radius:7px;
+  background:var(--grain-paper),linear-gradient(180deg,#FFFDF8 0%,#FCF7EA 60%,#F9F2E1 100%);
+  border:1px solid rgba(94,74,54,.15);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 0 0 1px rgba(255,255,255,.35) inset,0 12px 24px -18px rgba(70,52,36,.65);}
+.album-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.album-title{flex:1;min-width:0;font-family:var(--hand);font-size:28px;font-weight:700;color:var(--ink);line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.album-add{font-family:var(--hand);font-size:15px;color:var(--ink2);background:rgba(255,253,245,.6);border:1.2px dashed rgba(94,74,54,.32);border-radius:9px;padding:6px 12px;transition:all .18s;white-space:nowrap;}
+.album-add:hover{background:#FFFCF3;color:var(--rose-deep);border-color:rgba(191,110,126,.5);}
+.album-back{font-family:var(--hand);font-size:16px;color:var(--rose-deep);background:none;border:none;padding:4px 6px 4px 0;white-space:nowrap;}
+.album-back:hover{text-decoration:underline;text-underline-offset:3px;}
+.album-tools{display:flex;align-items:center;gap:6px;}
+.album-del{width:32px;height:32px;border:none;border-radius:50%;background:rgba(255,253,245,.6);font-size:14px;opacity:.55;}
+.album-del:hover{opacity:1;background:rgba(190,78,67,.12);}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:20px 14px;padding:8px 4px 6px;}
+/* 책장 위의 작은 책 */
+.book-item{position:relative;aspect-ratio:3/4;border:none;border-radius:2px 7px 7px 2px;padding:0;cursor:pointer;text-align:center;
+  background:var(--grain-paper),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,0) 1px 3px),
+    repeating-linear-gradient(90deg,rgba(0,0,0,.05) 0 1px,rgba(0,0,0,0) 1px 3px),
+    linear-gradient(90deg,rgba(0,0,0,.28) 0,rgba(0,0,0,.07) 9%,rgba(0,0,0,0) 18%),var(--c);
+  box-shadow:0 0 0 1px rgba(60,40,40,.25),3px 3px 0 -1px #F0E5CF,3px 3px 0 0 rgba(94,74,54,.12),0 14px 22px -14px rgba(60,40,30,.6);
+  transition:transform .2s,box-shadow .2s;}
+.book-item:hover{transform:translateY(-4px) rotate(-1.2deg);box-shadow:0 0 0 1px rgba(60,40,40,.25),3px 3px 0 -1px #F0E5CF,3px 3px 0 0 rgba(94,74,54,.12),0 20px 26px -14px rgba(60,40,30,.7);}
+.book-label{position:absolute;left:14%;right:14%;top:22%;padding:9% 5%;background:linear-gradient(180deg,#FFFDF6,#F8EFDB);border-radius:2px;
+  font-family:var(--hand);font-size:14px;font-weight:700;color:#4B332E;line-height:1.25;word-break:keep-all;
+  box-shadow:0 2px 5px -3px rgba(60,40,30,.6);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.book-count{position:absolute;left:0;right:0;bottom:9%;font-family:var(--hand);font-size:11.5px;color:rgba(255,246,236,.9);letter-spacing:.06em;}
+.album-empty{text-align:center;font-family:var(--hand);font-size:16px;line-height:1.6;color:var(--ink3);padding:36px 10px;}
+.album-canvas{position:relative;min-height:420px;border-radius:6px;}
+/* 폴라로이드 + 위에 붙인 마스킹테이프 */
+.pola-item{position:absolute;padding:7% 7% 0;background:#FFFEFB;border-radius:1px;transform-origin:50% 40%;user-select:none;-webkit-user-select:none;touch-action:none;cursor:zoom-in;
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 10px 18px -10px rgba(70,52,36,.7),0 0 0 1px rgba(94,74,54,.1);}
+.pola-item.mine{cursor:grab;}
+.pola-item.dragging{cursor:grabbing;z-index:5;box-shadow:0 18px 30px -14px rgba(70,52,36,.8),0 0 0 1px rgba(94,74,54,.14);}
+.pola-item.placing{z-index:6;outline:2px dashed rgba(191,110,126,.7);outline-offset:5px;}
+.pola-item::before{content:'';position:absolute;top:-9px;left:50%;width:46%;height:16px;margin-left:-23%;transform:rotate(-3deg);border-radius:1px;opacity:.93;
+  box-shadow:0 2px 4px -2px rgba(90,64,56,.35);
+  -webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0),#000 6%,#000 94%,rgba(0,0,0,0));mask-image:linear-gradient(90deg,rgba(0,0,0,0),#000 6%,#000 94%,rgba(0,0,0,0));}
+.pola-item.tape-1::before{background:repeating-linear-gradient(112deg,rgba(245,199,209,.95) 0 6px,rgba(255,243,245,.96) 6px 12px);}
+.pola-item.tape-2::before{background:repeating-linear-gradient(112deg,rgba(247,226,160,.95) 0 6px,rgba(255,248,224,.96) 6px 12px);transform:rotate(2.5deg);}
+.pola-item.tape-3::before{background:repeating-linear-gradient(112deg,rgba(196,226,208,.95) 0 6px,rgba(236,248,240,.96) 6px 12px);transform:rotate(-1.5deg);}
+.pola-img{aspect-ratio:1/1;background:#E9E2D4;overflow:hidden;}
+.pola-img img{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none;}
+.pola-cap{min-height:2.3em;padding:6px 2px 8px;font-family:var(--hand);font-size:13px;line-height:1.25;color:var(--ink2);text-align:center;word-break:keep-all;overflow:hidden;}
+/* 사진 붙일 때 아래에 뜨는 막대 */
+.place-bar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:6500;width:min(460px,calc(100% - 24px));padding:12px 14px;border-radius:12px;
+  background:var(--grain-paper),linear-gradient(180deg,#FFFCF4,#FBF4E4);box-shadow:0 0 0 1px rgba(94,74,54,.14),0 20px 40px -18px rgba(40,25,15,.6);
+  display:flex;flex-direction:column;gap:8px;}
+.place-row{display:flex;align-items:center;gap:10px;}
+.place-row label{display:flex;align-items:center;gap:8px;flex:1;font-family:var(--hand);font-size:14px;color:var(--ink2);}
+.place-row input[type=range]{flex:1;accent-color:var(--rose);}
+.place-row input[type=text]{flex:1;font-size:14px;padding:8px 10px;}
+.place-hint{font-family:var(--hand);font-size:12.5px;color:var(--ink3);white-space:nowrap;}
+.place-actions{justify-content:flex-end;}
+.place-actions .gate-btn{width:auto;margin:0;padding:8px 16px;font-size:16px;}
+.gate-btn.danger{color:var(--red);border-color:rgba(190,78,67,.5);margin-right:auto;}
+#album-new-form{display:flex;flex-direction:column;}
+#album-new-form input[type=text]{font-size:16px;}
+.cover-swatches{display:flex;gap:10px;margin:14px 0 16px;flex-wrap:wrap;}
+.swatch{width:30px;height:30px;border-radius:50%;border:2px solid rgba(0,0,0,0);background:var(--c);box-shadow:0 2px 5px -2px rgba(60,40,30,.5);transition:transform .15s;}
+.swatch.on{border-color:var(--ink);transform:scale(1.14);}
+@media(max-width:500px){
+  .album-panel{margin:2px 2px 8px 0;padding:12px 10px 14px;}
+  .album-title{font-size:23px;}
+  .shelf{grid-template-columns:repeat(3,1fr);gap:14px 10px;}
+  .pola-cap{font-size:11.5px;}
+  .place-hint{display:none;}
+}
 .flip-stage{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;}
 .flip-sheet{position:absolute;transform-origin:left center;transform-style:preserve-3d;border-radius:2px 10px 10px 2px;will-change:transform,opacity;}
 .flip-face{position:absolute;inset:0;border-radius:inherit;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;}
@@ -408,6 +477,7 @@ html,body{overscroll-behavior-y:contain;}
       </div>
       <div class="cover-tabs">
         <button class="bookmark" style="--c:var(--tab1)" onclick="event.stopPropagation();openBook('calendar')">캘린더</button>
+        <button class="bookmark" style="--c:var(--tab2)" onclick="event.stopPropagation();openBook('album')">사진첩</button>
       </div>
     </div>
   </div>
@@ -419,6 +489,7 @@ html,body{overscroll-behavior-y:contain;}
   <div class="spiral"></div>
   <nav class="bookmarks">
     <button class="bookmark active" data-tab="calendar" style="--c:var(--tab1)" onclick="flipTo('calendar')">캘린더</button>
+    <button class="bookmark" data-tab="album" style="--c:var(--tab2)" onclick="flipTo('album')">사진첩</button>
   </nav>
   <div class="paper">
   <div class="header">
@@ -459,8 +530,33 @@ html,body{overscroll-behavior-y:contain;}
     </section>
   </div>
 
+  <!-- 사진첩: 앨범(작은 책)들 → 앨범을 열면 폴라로이드가 붙은 페이지 -->
+  <div id="tab-album" class="page" inert>
+    <section class="album-panel" id="album-shelf" aria-label="사진첩">
+      <div class="album-head">
+        <div class="album-title">사진첩</div>
+        <button type="button" class="album-add" onclick="openNewAlbum()">+ 새 앨범</button>
+      </div>
+      <div class="shelf" id="shelf"></div>
+      <div class="album-empty" id="shelf-empty" hidden>아직 앨범이 없어요.<br>첫 앨범을 만들어서 사진을 모아 보세요 ♥</div>
+    </section>
+    <section class="album-panel album-open" id="album-view" hidden>
+      <div class="album-head">
+        <button type="button" class="album-back" onclick="closeAlbum()">‹ 사진첩</button>
+        <div class="album-title" id="album-view-title"></div>
+        <div class="album-tools">
+          <button type="button" class="album-add" onclick="document.getElementById('album-file').click()">+ 사진 붙이기</button>
+          <button type="button" class="album-del" onclick="deleteAlbum()" title="앨범 지우기" aria-label="앨범 지우기">🗑</button>
+        </div>
+        <input type="file" id="album-file" accept="image/*" multiple hidden>
+      </div>
+      <div class="album-canvas" id="album-canvas"></div>
+      <div class="album-empty" id="album-empty" hidden>사진을 붙여서 이 앨범을 채워 보세요</div>
+    </section>
   </div>
-  <div class="page-foot"><span>‹</span><span id="page-num">1 / 1</span><span>›</span></div>
+
+  </div>
+  <div class="page-foot"><span>‹</span><span id="page-num">1 / 2</span><span>›</span></div>
   <button type="button" class="gate-link account-delete" id="btn-delete" onclick="deleteAccount()" hidden>탈퇴하기</button>
   </div>
  </div>
@@ -478,6 +574,30 @@ html,body{overscroll-behavior-y:contain;}
       <span id="day-add-text">+ 사진 붙이기</span>
     </label>
     <div class="day-msg" id="day-msg"></div>
+  </div>
+</div>
+<!-- 새 앨범 만들기 -->
+<div id="album-new" class="day-sheet" hidden>
+  <div class="day-card" role="dialog" aria-labelledby="album-new-title-h">
+    <button type="button" class="day-close" onclick="closeNewAlbum()" aria-label="닫기">✕</button>
+    <div class="day-title" id="album-new-title-h">새 앨범</div>
+    <div class="day-sub">이름을 적고 표지 색을 골라 주세요</div>
+    <form id="album-new-form">
+      <input id="album-new-title" type="text" maxlength="30" placeholder="앨범 이름 (예: 제주도 여행)" required autocomplete="off">
+      <div class="cover-swatches" id="cover-swatches"></div>
+      <button type="submit" class="gate-btn">만들기</button>
+    </form>
+    <div class="day-msg" id="album-new-msg"></div>
+  </div>
+</div>
+<!-- 앨범에 사진 붙일 때: 자리·기울기·한 문장 -->
+<div id="place-bar" class="place-bar" hidden>
+  <div class="place-row"><input id="place-caption" type="text" maxlength="60" placeholder="한 문장 남기기 (선택)" autocomplete="off"></div>
+  <div class="place-row"><label>기울기 <input id="place-rot" type="range" min="-25" max="25" step="1" value="0"></label><span class="place-hint">사진을 끌어서 자리를 잡아요</span></div>
+  <div class="place-row place-actions">
+    <button type="button" class="gate-btn ghost danger" id="place-del" hidden>지우기</button>
+    <button type="button" class="gate-btn ghost" id="place-cancel">취소</button>
+    <button type="button" class="gate-btn" id="place-ok">붙이기</button>
   </div>
 </div>
 <!-- 사진 크게 보기 -->
@@ -624,7 +744,8 @@ async function loadMonthPhotos(){
   if(!sb||!me||!couple){renderMonthPhotos();if(openDayKey)renderDaySheet();return;}
   var first=calKey(new Date(calYear,calMonth,1)),last=calKey(new Date(calYear,calMonth+1,0));
   var r=await sb.from('photos').select('id,storage_path,taken_on,uploader_id,caption')
-    .eq('couple_id',couple.id).gte('taken_on',first).lte('taken_on',last).order('created_at');
+    .eq('couple_id',couple.id).is('album_id',null)   // 앨범 사진은 사진첩에서만
+    .gte('taken_on',first).lte('taken_on',last).order('created_at');
   if(r.error) throw r.error;
   await signPaths(r.data.map(function(p){return p.storage_path;}));
   r.data.forEach(function(p){
@@ -784,7 +905,7 @@ function openPhotoView(p){
   var img=document.createElement('img');   // 볼 때만 만들고 닫으면 없앰
   img.src=p.url;img.alt='';
   v.insertBefore(img,v.firstChild);
-  v.querySelector('.photo-view-cap').textContent=nickOf(p.uploader_id)+' · '+openDayKey;
+  v.querySelector('.photo-view-cap').textContent=nickOf(p.uploader_id)+(p.caption?' · '+p.caption:(openDayKey?' · '+openDayKey:''));
   v.hidden=false;
 }
 function closePhotoView(){var v=document.getElementById('photo-view');v.hidden=true;v.querySelectorAll('img').forEach(function(i){i.remove();});}
@@ -793,8 +914,311 @@ document.getElementById('photo-view').addEventListener('click',closePhotoView);
 // 처음엔 오늘이 있는 달을 보여줌 (사진은 로그인·커플 확인 뒤에 불러옴)
 buildCalendar(new Date().getFullYear(),new Date().getMonth());
 
+// ===== 사진첩 (앨범) =====
+// albums 표 = 책장의 작은 책. 앨범 사진은 photos 표에 album_id + 위치(pos_x, pos_y: 페이지 너비 기준 비율) + 기울기(rot)로 저장.
+var ALBUM_COVERS={rose:'#BF6E7E',sage:'#6F9A82',butter:'#D9B35C',navy:'#4F6B8F',cocoa:'#8A6650',lilac:'#9B86B8'};
+var albums=[],albumCounts={},openAlbum=null,albumPhotos=[];
+var placing=null;      // 지금 배치 중인 사진 {mode:'new'|'edit', el, x, y, rot, caption, blob?, photo?}
+var albumQueue=[];     // 여러 장을 골랐을 때 한 장씩 차례로 배치
+
+async function loadAlbums(){
+  albums=[];albumCounts={};
+  if(!sb||!me||!couple){renderShelf();if(openAlbum)closeAlbum(true);return;}
+  var r=await sb.from('albums').select('id,title,cover,sort,created_at').eq('couple_id',couple.id).order('sort').order('created_at');
+  if(r.error) throw r.error;
+  albums=r.data||[];
+  var c=await sb.from('photos').select('album_id').eq('couple_id',couple.id).not('album_id','is',null);
+  (c.data||[]).forEach(function(p){albumCounts[p.album_id]=(albumCounts[p.album_id]||0)+1;});
+  renderShelf();
+  if(openAlbum){
+    var still=albums.filter(function(a){return a.id===openAlbum.id;})[0];
+    if(still){openAlbum=still;document.getElementById('album-view-title').textContent=still.title;await loadAlbumPhotos();}
+    else closeAlbum(true);   // 짝꿍이 지운 앨범
+  }
+}
+function renderShelf(){
+  var shelf=document.getElementById('shelf');
+  shelf.innerHTML='';
+  document.getElementById('shelf-empty').hidden=albums.length>0;
+  albums.forEach(function(a){
+    var b=document.createElement('button');
+    b.type='button';b.className='book-item';b.style.setProperty('--c',ALBUM_COVERS[a.cover]||ALBUM_COVERS.rose);
+    b.innerHTML='<span class="book-label"></span><span class="book-count"></span>';
+    b.querySelector('.book-label').textContent=a.title;
+    var n=albumCounts[a.id]||0;
+    b.querySelector('.book-count').textContent=n?n+'장':'비어 있음';
+    b.onclick=function(){openAlbumBook(a);};
+    shelf.appendChild(b);
+  });
+}
+
+// --- 앨범 열고 닫기 (촤라락) ---
+async function openAlbumBook(a){
+  if(flipping||placing) return;
+  openAlbum=a;
+  try{await loadAlbumPhotos();}catch(e){console.error('album:',e);}
+  riffle(1,{content:true,mid:showAlbumView});
+}
+function showAlbumView(){
+  document.getElementById('album-shelf').hidden=true;
+  document.getElementById('album-view').hidden=false;
+  document.getElementById('album-view-title').textContent=openAlbum?openAlbum.title:'';
+  document.getElementById('header-chapter').textContent='사진첩 · '+(openAlbum?openAlbum.title:'');
+  renderAlbum();
+}
+function hideAlbumView(){
+  document.getElementById('album-view').hidden=true;
+  document.getElementById('album-shelf').hidden=false;
+  if(currentTab==='album') document.getElementById('header-chapter').textContent='사진첩';
+}
+function closeAlbum(silent){
+  if(placing) cancelPlacing();
+  openAlbum=null;albumPhotos=[];
+  if(silent||document.getElementById('album-view').hidden){hideAlbumView();return;}
+  riffle(-1,{content:true,mid:hideAlbumView});
+}
+
+// --- 앨범 사진 불러오기 · 그리기 ---
+async function loadAlbumPhotos(){
+  albumPhotos=[];
+  if(!sb||!couple||!openAlbum) return;
+  var r=await sb.from('photos').select('id,storage_path,uploader_id,caption,pos_x,pos_y,rot,created_at').eq('album_id',openAlbum.id).order('created_at');
+  if(r.error) throw r.error;
+  await signPaths(r.data.map(function(p){return p.storage_path;}));
+  r.data.forEach(function(p){p.url=(photoUrlCache[p.storage_path]||{}).url;});
+  albumPhotos=r.data;
+  if(!document.getElementById('album-view').hidden) renderAlbum();
+}
+function polaWidth(W){return Math.max(104,Math.min(180,W*0.3));}
+function defaultPos(i,W,pw){var cols=Math.max(1,Math.floor((W-20)/(pw+14)));return {x:(10+(i%cols)*(pw+14))/W,y:(10+Math.floor(i/cols)*(pw*1.34))/W};}
+function tapeIndex(id){var h=0;id=id||'';for(var i=0;i<id.length;i++)h=(h*31+id.charCodeAt(i))|0;return Math.abs(h)%3;}
+function renderAlbum(){
+  var canvas=document.getElementById('album-canvas');
+  canvas.querySelectorAll('.pola-item:not(.placing)').forEach(function(e){e.remove();});
+  var W=canvas.clientWidth||1,pw=polaWidth(W);
+  document.getElementById('album-empty').hidden=albumPhotos.length>0||!!placing;
+  albumPhotos.forEach(function(p,i){
+    if(placing&&placing.photo&&placing.photo.id===p.id) return;   // 편집 중인 건 그대로 둠
+    canvas.appendChild(makePola(p,W,pw,i));
+  });
+  growCanvas();
+}
+function makePola(p,W,pw,i){
+  var el=document.createElement('div');
+  var d=defaultPos(i,W,pw);
+  var x=p.pos_x==null?d.x:p.pos_x,y=p.pos_y==null?d.y:p.pos_y;
+  el.className='pola-item tape-'+(tapeIndex(p.id)+1)+((me&&p.uploader_id===me.id)?' mine':'');
+  el.style.width=pw+'px';el.style.left=(x*W)+'px';el.style.top=(y*W)+'px';el.style.transform='rotate('+(p.rot||0)+'deg)';
+  el.innerHTML='<div class="pola-img"><img alt=""></div><div class="pola-cap"></div>';
+  if(p.url) el.querySelector('img').src=p.url;
+  el.querySelector('.pola-cap').textContent=p.caption||'';
+  el.title=nickOf(p.uploader_id);
+  attachDrag(el,p);
+  return el;
+}
+function growCanvas(){
+  var canvas=document.getElementById('album-canvas'),maxB=0;
+  canvas.querySelectorAll('.pola-item').forEach(function(e){maxB=Math.max(maxB,parseFloat(e.style.top)+e.offsetHeight+24);});
+  canvas.style.minHeight=Math.max(420,maxB)+'px';
+}
+window.addEventListener('resize',function(){if(openAlbum&&!document.getElementById('album-view').hidden&&!placing) renderAlbum();});
+
+// --- 끌어서 옮기기 ---
+function attachDrag(el,p){
+  var start=null,moved=false;
+  el.addEventListener('pointerdown',function(e){
+    if(e.button!==undefined&&e.button!==0) return;
+    var canMove=(placing&&placing.el===el)||(!!p&&me&&p.uploader_id===me.id&&!placing);
+    start={x:e.clientX,y:e.clientY,left:parseFloat(el.style.left)||0,top:parseFloat(el.style.top)||0,canMove:canMove};moved=false;
+    if(canMove){try{el.setPointerCapture(e.pointerId);}catch(x){}el.classList.add('dragging');}
+  });
+  el.addEventListener('pointermove',function(e){
+    if(!start||!start.canMove) return;
+    var dx=e.clientX-start.x,dy=e.clientY-start.y;
+    if(Math.abs(dx)+Math.abs(dy)>4) moved=true;
+    if(!moved) return;
+    var W=document.getElementById('album-canvas').clientWidth,pw=el.offsetWidth;
+    el.style.left=Math.max(0,Math.min(W-pw,start.left+dx))+'px';
+    el.style.top=Math.max(0,start.top+dy)+'px';
+    e.preventDefault();
+  });
+  el.addEventListener('pointerup',async function(e){
+    if(!start) return;
+    var s=start;start=null;el.classList.remove('dragging');
+    if(s.canMove){try{el.releasePointerCapture(e.pointerId);}catch(x){}}
+    if(moved){
+      if(placing&&placing.el===el){placing.x=parseFloat(el.style.left);placing.y=parseFloat(el.style.top);}
+      else if(p) await savePos(p,el);   // 내 사진을 그냥 끌어 옮기면 바로 저장
+      growCanvas();
+      return;
+    }
+    if(placing) return;
+    if(p&&me&&p.uploader_id===me.id) startEdit(p,el); else if(p) openPhotoView(p);
+  });
+  el.addEventListener('pointercancel',function(){start=null;el.classList.remove('dragging');});
+}
+async function savePos(p,el){
+  var W=document.getElementById('album-canvas').clientWidth;
+  var x=parseFloat(el.style.left)/W,y=parseFloat(el.style.top)/W;
+  var r=await sb.from('photos').update({pos_x:x,pos_y:y}).eq('id',p.id);
+  if(r.error){console.error('pos:',r.error);return;}
+  p.pos_x=x;p.pos_y=y;
+}
+
+// --- 붙이기 · 고치기 (배치 막대) ---
+function showPlaceBar(){
+  var bar=document.getElementById('place-bar');
+  bar.hidden=false;
+  document.getElementById('place-ok').textContent=placing.mode==='new'?'붙이기':'완료';
+  document.getElementById('place-del').hidden=placing.mode!=='edit';
+  document.getElementById('place-caption').value=placing.caption||'';
+  document.getElementById('place-rot').value=placing.rot||0;
+  document.getElementById('album-empty').hidden=true;
+}
+function hidePlaceBar(){document.getElementById('place-bar').hidden=true;}
+async function startPlacingFile(file){
+  if(!openAlbum||placing) return;
+  var blob=await compressImage(file),type='image/jpeg',ext='jpg';
+  if(!blob){
+    if(file.size>10*1024*1024){alert('10MB 이하 사진 파일만 붙일 수 있어요.');nextInQueue();return;}
+    blob=file;type=file.type||'image/jpeg';ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+  }
+  var canvas=document.getElementById('album-canvas'),W=canvas.clientWidth,pw=polaWidth(W);
+  var el=document.createElement('div');
+  el.className='pola-item placing mine tape-'+(albumPhotos.length%3+1);
+  el.style.width=pw+'px';el.style.left=Math.max(0,(W-pw)/2)+'px';el.style.top='28px';
+  el.innerHTML='<div class="pola-img"><img alt=""></div><div class="pola-cap"></div>';
+  var url=URL.createObjectURL(blob);
+  el.querySelector('img').src=url;
+  canvas.appendChild(el);
+  placing={mode:'new',el:el,blob:blob,type:type,ext:ext,url:url,x:parseFloat(el.style.left),y:28,rot:0,caption:''};
+  attachDrag(el,null);
+  showPlaceBar();
+  growCanvas();
+  el.scrollIntoView({block:'center',behavior:'smooth'});
+}
+function startEdit(p,el){
+  placing={mode:'edit',el:el,photo:p,x:parseFloat(el.style.left),y:parseFloat(el.style.top),rot:p.rot||0,caption:p.caption||''};
+  el.classList.add('placing');
+  showPlaceBar();
+}
+function cancelPlacing(){
+  if(!placing) return;
+  var wasNew=placing.mode==='new';
+  if(wasNew){placing.el.remove();URL.revokeObjectURL(placing.url);}
+  else placing.el.classList.remove('placing');
+  placing=null;hidePlaceBar();renderAlbum();
+  if(wasNew) nextInQueue();
+}
+async function savePlacing(){
+  if(!placing||!sb||!me||!couple||!openAlbum) return;
+  var W=document.getElementById('album-canvas').clientWidth;
+  var x=Math.max(0,Math.min(1,placing.x/W)),y=Math.max(0,placing.y/W),rot=Math.round(placing.rot);
+  var cap=(document.getElementById('place-caption').value||'').trim().slice(0,60);
+  var ok=document.getElementById('place-ok');ok.disabled=true;
+  var wasNew=placing.mode==='new';
+  try{
+    if(wasNew){
+      ok.textContent='붙이는 중…';
+      var path=couple.id+'/album_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+'.'+placing.ext;
+      var up=await sb.storage.from('photos').upload(path,placing.blob,{contentType:placing.type,upsert:false});
+      if(up.error) throw up.error;
+      var ins=await sb.from('photos').insert({couple_id:couple.id,uploader_id:me.id,storage_path:path,album_id:openAlbum.id,pos_x:x,pos_y:y,rot:rot,caption:cap||null});
+      if(ins.error){await sb.storage.from('photos').remove([path]);throw ins.error;}
+      placing.el.remove();URL.revokeObjectURL(placing.url);
+    } else {
+      var upd=await sb.from('photos').update({pos_x:x,pos_y:y,rot:rot,caption:cap||null}).eq('id',placing.photo.id);
+      if(upd.error) throw upd.error;
+      placing.el.classList.remove('placing');
+    }
+    placing=null;hidePlaceBar();
+    await loadAlbums();
+    if(wasNew) nextInQueue();
+  }catch(err){
+    console.error('album save:',err);
+    alert('저장하지 못했어요. 인터넷 연결을 확인하고 다시 해주세요.');
+  }finally{ok.disabled=false;ok.textContent=placing&&placing.mode==='new'?'붙이기':'완료';}
+}
+async function deletePlacing(){
+  if(!placing||placing.mode!=='edit'||!sb) return;
+  var p=placing.photo;
+  if(!confirm('이 사진을 앨범에서 뗄까?\n지우면 되돌릴 수 없어.')) return;
+  var d=await sb.from('photos').delete().eq('id',p.id);
+  if(d.error){alert('지우지 못했어요. 다시 해주세요.');return;}
+  sb.storage.from('photos').remove([p.storage_path]).then(function(r){if(r.error)console.error('remove file:',r.error);});
+  delete photoUrlCache[p.storage_path];
+  placing=null;hidePlaceBar();
+  try{await loadAlbums();}catch(e){console.error(e);}
+}
+function nextInQueue(){if(albumQueue.length&&openAlbum&&!placing) startPlacingFile(albumQueue.shift());}
+document.getElementById('album-file').addEventListener('change',function(){
+  var files=Array.prototype.slice.call(this.files||[]);
+  this.value='';
+  if(!files.length||!openAlbum) return;
+  albumQueue=albumQueue.concat(files);
+  nextInQueue();
+});
+document.getElementById('place-rot').addEventListener('input',function(){
+  if(!placing) return;
+  placing.rot=+this.value;
+  placing.el.style.transform='rotate('+placing.rot+'deg)';
+});
+document.getElementById('place-caption').addEventListener('input',function(){
+  if(!placing) return;
+  placing.caption=this.value;
+  placing.el.querySelector('.pola-cap').textContent=this.value;
+});
+document.getElementById('place-ok').addEventListener('click',savePlacing);
+document.getElementById('place-cancel').addEventListener('click',cancelPlacing);
+document.getElementById('place-del').addEventListener('click',deletePlacing);
+
+// --- 새 앨범 · 앨범 지우기 ---
+var newCover='rose';
+function openNewAlbum(){
+  if(!me||!couple) return;
+  document.getElementById('album-new').hidden=false;
+  document.getElementById('album-new-title').value='';
+  document.getElementById('album-new-msg').textContent='';
+  renderSwatches();
+  setTimeout(function(){document.getElementById('album-new-title').focus();},60);
+}
+function closeNewAlbum(){document.getElementById('album-new').hidden=true;}
+function renderSwatches(){
+  var w=document.getElementById('cover-swatches');
+  w.innerHTML='';
+  Object.keys(ALBUM_COVERS).forEach(function(k){
+    var b=document.createElement('button');
+    b.type='button';b.className='swatch'+(k===newCover?' on':'');b.style.setProperty('--c',ALBUM_COVERS[k]);b.setAttribute('aria-label',k+' 표지');
+    b.onclick=function(){newCover=k;renderSwatches();};
+    w.appendChild(b);
+  });
+}
+document.getElementById('album-new').addEventListener('click',function(e){if(e.target===this) closeNewAlbum();});
+document.getElementById('album-new-form').addEventListener('submit',async function(e){
+  e.preventDefault();
+  if(!sb||!me||!couple) return;
+  var title=document.getElementById('album-new-title').value.trim().slice(0,30);
+  if(!title) return;
+  var msg=document.getElementById('album-new-msg');
+  var r=await sb.from('albums').insert({couple_id:couple.id,title:title,cover:newCover,sort:albums.length});
+  if(r.error){msg.textContent='만들지 못했어요. 다시 해주세요.';console.error(r.error);return;}
+  closeNewAlbum();
+  try{await loadAlbums();}catch(err){console.error(err);}
+});
+async function deleteAlbum(){
+  if(!openAlbum||!sb||placing) return;
+  var n=albumCounts[openAlbum.id]||0;
+  if(!confirm("'"+openAlbum.title+"' 앨범을 지울까?\n안에 있는 사진 "+n+"장도 함께 지워지고 되돌릴 수 없어.")) return;
+  var paths=albumPhotos.map(function(p){return p.storage_path;});
+  var d=await sb.from('albums').delete().eq('id',openAlbum.id);
+  if(d.error){alert('지우지 못했어요. 다시 해주세요.');return;}
+  if(paths.length) sb.storage.from('photos').remove(paths).then(function(r){if(r.error)console.error('remove files:',r.error);});
+  openAlbum=null;albumPhotos=[];hideAlbumView();
+  try{await loadAlbums();}catch(e){console.error(e);}
+}
+
 // ===== 탭 =====
-var PAGE_ORDER=['calendar'];
+var PAGE_ORDER=['calendar','album'];
 var currentTab='calendar';
 
 function showTab(name){
@@ -912,18 +1336,20 @@ function isCoverShown(){return !document.getElementById('cover').classList.conta
 function goNext(){
   if(flipping) return;
   if(isCoverShown()){openBook();return;}
+  if(currentTab==='album'&&openAlbum) return;   // 앨범 안에서는 더 넘어갈 곳이 없음
   var i=PAGE_ORDER.indexOf(currentTab);
   if(i<PAGE_ORDER.length-1) flipTo(PAGE_ORDER[i+1]);
 }
 function goPrev(){
   if(flipping||isCoverShown()) return;
+  if(currentTab==='album'&&openAlbum){closeAlbum();return;}   // 앨범 안에서 왼쪽 → 책장으로
   var i=PAGE_ORDER.indexOf(currentTab);
   if(i>0) flipTo(PAGE_ORDER[i-1]);
   else closeBook();
 }
-var TAP_IGNORE='button,input,textarea,select,a,label,[onclick],.bookmark,.cal-grid,.day-sheet,.photo-view';
+var TAP_IGNORE='button,input,textarea,select,a,label,[onclick],.bookmark,.cal-grid,.day-sheet,.photo-view,.album-panel,.place-bar';
 function isGateShown(){return !document.getElementById('gate').hidden;}
-function isOverlayShown(){return !document.getElementById('day-sheet').hidden||!document.getElementById('photo-view').hidden;}
+function isOverlayShown(){return !document.getElementById('day-sheet').hidden||!document.getElementById('photo-view').hidden||!document.getElementById('album-new').hidden||!!placing;}
 document.addEventListener('click',function(e){
   if(isCoverShown()||isGateShown()||isOverlayShown()||e.target.closest('#cover')) return;
   if(e.target.closest(TAP_IGNORE)) return;
@@ -934,7 +1360,13 @@ document.addEventListener('click',function(e){
 document.addEventListener('keydown',function(e){
   var tag=(e.target.tagName||'').toLowerCase();
   if(tag==='input'||tag==='textarea'||tag==='select') return;
-  if(e.key==='Escape'){if(!document.getElementById('photo-view').hidden) closePhotoView(); else if(!document.getElementById('day-sheet').hidden) closeDay();return;}
+  if(e.key==='Escape'){
+    if(!document.getElementById('photo-view').hidden) closePhotoView();
+    else if(!document.getElementById('day-sheet').hidden) closeDay();
+    else if(!document.getElementById('album-new').hidden) closeNewAlbum();
+    else if(placing) cancelPlacing();
+    return;
+  }
   if(isGateShown()||isOverlayShown()) return;
   if(e.key==='ArrowRight') goNext();
   else if(e.key==='ArrowLeft') goPrev();
@@ -1050,6 +1482,7 @@ async function refreshSession(session){
   try{
     if(me) await loadCouple(); else {couple=null;partner=null;myProfile=null;}
     await loadMonthPhotos();
+    await loadAlbums();
     renderGate();
   }catch(err){
     document.getElementById('gate-error-msg').textContent='기록을 불러오지 못했어요. 잠시 후 새로고침해 주세요.';
@@ -1186,6 +1619,7 @@ async function refreshFromServer(){
   try{
     await loadCouple();
     await loadMonthPhotos();
+    await loadAlbums();
     renderGate();
     return true;
   }catch(err){

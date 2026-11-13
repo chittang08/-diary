@@ -10,7 +10,8 @@
 --   entries               : 하루 한 줄 기록 + 기분 (한 사람당 하루 하나)
 --   routines              : 둘이 같이 정한 약속(루틴) 목록
 --   routine_checks        : 날짜별로 누가 어떤 약속을 지켰는지
---   photos                : 사진 정보 (파일은 Storage 'photos' 버킷에 저장)
+--   photos                : 사진 정보 (파일은 Storage 'photos' 버킷에 저장). 날짜 사진 또는 앨범 사진
+--   albums                : 사진첩의 앨범(작은 책) 한 권
 --   push_subscriptions    : 알림 받을 기기 (Web Push 구독 정보)
 --   couple_join_attempts  : 초대 코드 틀린 기록 (대입 공격 막기용, 아무도 직접 못 봄)
 --
@@ -77,6 +78,17 @@ create table public.routine_checks (
 );
 create index routine_checks_couple_date_idx on public.routine_checks (couple_id, check_date desc);
 
+create table public.albums (
+  id          uuid primary key default gen_random_uuid(),
+  couple_id   uuid not null references public.couples(id) on delete cascade,
+  title       text not null check (char_length(trim(title)) between 1 and 30),
+  cover       text not null default 'rose' check (cover in ('rose','sage','butter','navy','cocoa','lilac')),
+  sort        int  not null default 0,
+  created_by  uuid default auth.uid() references auth.users(id) on delete set null,
+  created_at  timestamptz not null default now()
+);
+create index albums_couple_idx on public.albums (couple_id, sort, created_at);
+
 create table public.photos (
   id            uuid primary key default gen_random_uuid(),
   couple_id     uuid not null references public.couples(id) on delete cascade,
@@ -85,9 +97,15 @@ create table public.photos (
   storage_path  text not null unique check (char_length(storage_path) <= 300),   -- '{couple_id}/{파일이름}'
   caption       text check (caption is null or char_length(caption) <= 200),
   taken_on      date not null default current_date,
+  -- 앨범에 붙인 사진이면: 어느 앨범에, 어디에(페이지 너비 기준 비율), 몇 도 기울여서
+  album_id      uuid references public.albums(id) on delete cascade,
+  pos_x         real check (pos_x is null or (pos_x >= 0 and pos_x <= 1)),
+  pos_y         real check (pos_y is null or (pos_y >= 0 and pos_y <= 20)),
+  rot           real not null default 0 check (rot between -45 and 45),
   created_at    timestamptz not null default now()
 );
 create index photos_couple_date_idx on public.photos (couple_id, taken_on desc);
+create index photos_album_idx on public.photos (album_id) where album_id is not null;
 
 create table public.push_subscriptions (
   id          uuid primary key default gen_random_uuid(),
@@ -297,11 +315,12 @@ revoke update on public.couple_members from authenticated;
 revoke all on public.couple_join_attempts from anon, authenticated;
 
 -- 수정은 바꿔도 되는 칸만
-revoke update on public.couples, public.profiles, public.entries, public.photos, public.routines, public.push_subscriptions from authenticated;
+revoke update on public.couples, public.profiles, public.entries, public.photos, public.routines, public.push_subscriptions, public.albums from authenticated;
 grant update (started_on)                  on public.couples            to authenticated;
 grant update (nickname)                    on public.profiles           to authenticated;
 grant update (content, mood)               on public.entries            to authenticated;
-grant update (caption, taken_on, entry_id) on public.photos             to authenticated;
+grant update (caption, taken_on, entry_id, pos_x, pos_y, rot) on public.photos to authenticated;
+grant update (title, cover, sort)          on public.albums             to authenticated;
 grant update (name, sort)                  on public.routines           to authenticated;
 grant update (p256dh, auth)                on public.push_subscriptions to authenticated;
 
@@ -333,6 +352,7 @@ alter table public.photos               enable row level security;
 alter table public.routines             enable row level security;
 alter table public.routine_checks       enable row level security;
 alter table public.push_subscriptions   enable row level security;
+alter table public.albums               enable row level security;
 alter table public.couple_join_attempts enable row level security;   -- 규칙 없음 = 함수 말고는 아무도 못 봄
 
 -- profiles: 나와 내 짝꿍 것만 보기, 내 것만 수정
@@ -395,7 +415,19 @@ create policy "checks: 내 체크 취소" on public.routine_checks
   for delete to authenticated
   using (user_id = auth.uid() and couple_id = public.my_couple_id());
 
--- photos: 둘 다 보기, 올린 사람만 수정·삭제. 경로는 우리 커플 폴더만, 연결 기록도 우리 커플 것만
+-- albums: 둘이 같이 쓰는 사진첩이라 둘 다 만들고 고치고 지움
+create policy "albums: 커플이 보기" on public.albums
+  for select to authenticated using (couple_id = public.my_couple_id());
+create policy "albums: 커플이 만들기" on public.albums
+  for insert to authenticated
+  with check (couple_id = public.my_couple_id() and created_by = auth.uid());
+create policy "albums: 커플이 수정" on public.albums
+  for update to authenticated
+  using (couple_id = public.my_couple_id()) with check (couple_id = public.my_couple_id());
+create policy "albums: 커플이 삭제" on public.albums
+  for delete to authenticated using (couple_id = public.my_couple_id());
+
+-- photos: 둘 다 보기, 올린 사람만 수정·삭제. 경로는 우리 커플 폴더만, 연결 기록·앨범도 우리 커플 것만
 create policy "photos: 커플이 보기" on public.photos
   for select to authenticated using (couple_id = public.my_couple_id());
 create policy "photos: 내가 올리기" on public.photos
@@ -404,6 +436,7 @@ create policy "photos: 내가 올리기" on public.photos
     couple_id = public.my_couple_id() and uploader_id = auth.uid()
     and storage_path like public.my_couple_id()::text || '/%'
     and (entry_id is null or exists (select 1 from public.entries e where e.id = entry_id and e.couple_id = public.my_couple_id()))
+    and (album_id is null or exists (select 1 from public.albums a where a.id = album_id and a.couple_id = public.my_couple_id()))
   );
 create policy "photos: 내 사진 수정" on public.photos
   for update to authenticated
