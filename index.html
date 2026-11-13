@@ -413,7 +413,7 @@ html,body{overscroll-behavior-y:contain;}
 </div>
 <!-- 사진 크게 보기 -->
 <div id="photo-view" class="photo-view" hidden>
-  <img src="" alt="">
+  <img alt="">
   <div class="photo-view-cap"></div>
 </div>
 
@@ -707,7 +707,7 @@ function openPhotoView(p){
   v.querySelector('.photo-view-cap').textContent=nickOf(p.uploader_id)+' · '+openDayKey;
   v.hidden=false;
 }
-function closePhotoView(){var v=document.getElementById('photo-view');v.hidden=true;v.querySelector('img').src='';}
+function closePhotoView(){var v=document.getElementById('photo-view');v.hidden=true;v.querySelector('img').removeAttribute('src');}
 document.getElementById('photo-view').addEventListener('click',closePhotoView);
 
 // 처음엔 오늘이 있는 달을 보여줌 (사진은 로그인·커플 확인 뒤에 불러옴)
