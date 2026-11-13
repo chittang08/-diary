@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="갓생 다이어리">
+<meta name="apple-mobile-web-app-title" content="다이어리">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#E6DCCB">
-<title>갓생 다이어리</title>
+<title>다이어리</title>
 <!-- 보안: 정해진 곳(우리 Supabase, 글꼴 CDN)과만 통신하고, 다른 곳의 스크립트는 못 돌게 -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data: blob: https://tzkygyodhfspoxoqoscn.supabase.co; connect-src 'self' https://tzkygyodhfspoxoqoscn.supabase.co wss://tzkygyodhfspoxoqoscn.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -160,29 +160,56 @@ body.cover-on{overflow:hidden;}
     linear-gradient(180deg,#EFE5D2,#E6D9C2 60%,#DCCDB4);
   transition:opacity 0.35s ease,visibility 0s 0s;}
 .cover-screen.open{opacity:0;visibility:hidden;pointer-events:none;transition:opacity 0.45s ease 0.45s,visibility 0s 0.9s;}
-.cover-book{position:relative;container-type:inline-size;width:min(408px,100%,calc((100vh - 120px)*0.75));aspect-ratio:3/4;transform-origin:left center;
+.cover-wrap{position:relative;width:min(408px,100%,calc((100vh - 120px)*0.75));aspect-ratio:3/4;}
+.cover-book{position:absolute;inset:0;container-type:inline-size;transform-origin:left center;
   transition:transform 0.85s cubic-bezier(0.6,0.05,0.3,1);}
 .cover-screen.open .cover-book{transform:rotateY(-110deg);}
+/* 표지 뒤로 비치는 속지 종이 단면 (오른쪽·아래) — 표지가 열려도 제자리에 남음 */
+.cover-edges{position:absolute;pointer-events:none;border-radius:2px 6px 6px 2px;}
+.cover-edges.bottom{left:14px;right:-3px;top:8px;bottom:-9px;
+  background:repeating-linear-gradient(90deg,#FBF6EA 0 1.5px,#E4DAC5 1.5px 2.5px);
+  box-shadow:0 0 0 1px rgba(94,74,54,.12);}
+.cover-edges.right{top:5px;bottom:-5px;left:12px;right:-8px;
+  background:repeating-linear-gradient(180deg,#FBF6EA 0 1.5px,#E4DAC5 1.5px 2.5px);
+  box-shadow:0 0 0 1px rgba(94,74,54,.14),12px 16px 30px -14px rgba(70,52,36,.6);}
+/* 리넨(천) 결이 있는 하드커버 */
 .cover-face{position:absolute;inset:0;z-index:2;border-radius:2px 8px 8px 2px;overflow:hidden;
   background:
     var(--grain-paper),
-    linear-gradient(90deg,rgba(62,20,24,.22) 0,rgba(62,20,24,.05) 6%,rgba(0,0,0,0) 14%),
-    linear-gradient(162deg,#CB7B83 0%,#BF626E 46%,#AF515E 100%);
-  box-shadow:0 0 0 1px rgba(84,32,38,.28),inset 0 0 42px rgba(88,30,36,.16),
-    6px 6px 0 -1px #F0E5CF,6px 6px 0 0 rgba(90,70,50,.12),0 28px 46px -24px rgba(70,36,34,.55);}
-.cover-title-wrap{position:absolute;top:21%;left:10%;right:18%;padding:9% 5% 7%;text-align:center;border-radius:3px;
-  background:linear-gradient(180deg,#FFFDF6,#FAF2DF);
-  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 7px 14px -9px rgba(60,40,30,.5);transform:rotate(-1deg);}
+    repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,0) 1px 3px),
+    repeating-linear-gradient(90deg,rgba(0,0,0,.055) 0 1px,rgba(0,0,0,0) 1px 3px),
+    radial-gradient(120% 90% at 28% 16%,rgba(255,255,255,.17),rgba(255,255,255,0) 60%),
+    linear-gradient(90deg,rgba(62,20,24,.28) 0,rgba(62,20,24,.07) 7%,rgba(0,0,0,0) 15%),
+    linear-gradient(162deg,#C9767F 0%,#BC5F6B 48%,#A94C59 100%);
+  box-shadow:0 0 0 1px rgba(84,32,38,.3),inset 0 0 48px rgba(88,30,36,.22),inset 0 1px 0 rgba(255,255,255,.14),0 30px 50px -26px rgba(70,36,34,.6);}
+/* 가장자리 박음질 선 */
+.cover-face::before{content:'';position:absolute;z-index:1;inset:11px 11px 11px 15px;border:1.5px dashed rgba(255,240,232,.34);border-radius:2px 6px 6px 2px;pointer-events:none;}
+/* 모서리가 살짝 닳은 느낌 */
+.cover-face::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(62px 62px at 100% 0,rgba(255,236,230,.22),rgba(255,236,230,0) 70%),
+    radial-gradient(72px 72px at 100% 100%,rgba(255,236,230,.16),rgba(255,236,230,0) 70%),
+    radial-gradient(52px 52px at 0 100%,rgba(255,236,230,.12),rgba(255,236,230,0) 70%);}
+/* 종이 라벨: 아래쪽이 찢긴 듯한 결, 위에는 마스킹 테이프 */
+.cover-title-wrap{position:absolute;z-index:2;top:21%;left:10%;right:18%;padding:9% 5% 8%;text-align:center;border-radius:2px 2px 0 0;
+  background:var(--grain-paper),linear-gradient(180deg,#FFFDF6,#F9F1DD);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 9px 16px -9px rgba(60,40,30,.6);transform:rotate(-1.2deg);}
 .cover-title-wrap::before{content:'';position:absolute;top:-11px;left:50%;width:76px;height:20px;margin-left:-38px;border-radius:1px;transform:rotate(-3.5deg);
   background:repeating-linear-gradient(112deg,rgba(245,199,209,.95) 0 6px,rgba(255,243,245,.96) 6px 12px);
   box-shadow:0 2px 5px -2px rgba(90,60,50,.3);}
+.cover-title-wrap::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:7px;
+  background:radial-gradient(circle at 5px 0,#F9F1DD 3.4px,rgba(0,0,0,0) 4px) 0 0/10px 7px repeat-x;}
 .cover-title{font-family:var(--hand);font-weight:700;font-size:8.6cqw;line-height:1.18;color:#4B332E;word-break:keep-all;letter-spacing:.01em;white-space:nowrap;}
-.cover-line{height:2px;width:62%;margin:5% auto 0;border-radius:2px;background:rgba(75,51,46,.28);}
-.cover-band{position:absolute;left:0;right:0;top:64%;display:flex;align-items:center;justify-content:center;padding:0 20% 0 12%;
-  font-family:var(--hand);font-weight:700;font-size:4.6cqw;letter-spacing:.16em;color:rgba(255,246,234,.94);}
+.cover-line{height:2px;width:62%;margin:5% auto 0;border-radius:2px;background:rgba(75,51,46,.3);transform:rotate(-.6deg);}   /* 손으로 그은 밑줄 두 개 */
+.cover-line.thin{height:1px;width:46%;margin-top:4px;background:rgba(75,51,46,.22);transform:rotate(.8deg);}
+/* 띠지: 크라프트 종이 띠가 표지를 두름 */
+.cover-band{position:absolute;z-index:2;left:0;right:0;top:62%;height:11%;display:flex;align-items:center;justify-content:center;padding:0 20% 0 12%;
+  background:var(--grain-paper),linear-gradient(180deg,#F8EFDC,#EEE2C8);
+  box-shadow:0 4px 9px -4px rgba(60,40,30,.55),inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(94,74,54,.16);
+  font-family:var(--hand);font-weight:700;font-size:4.6cqw;letter-spacing:.24em;color:var(--rose-deep);text-shadow:0 1px 0 rgba(255,255,255,.75);}
+/* 고무줄: 세로로 짜인 결 */
 .cover-elastic{position:absolute;z-index:4;top:-3px;bottom:-3px;right:9.5%;width:3.4cqw;border-radius:2px;
-  background:linear-gradient(90deg,#6B4341,#835552 45%,#5B3A38 72%,#472A28);
-  box-shadow:-2px 0 6px rgba(58,30,30,.28),2px 0 4px rgba(58,30,30,.16),inset 0 0 0 1px rgba(255,255,255,.07);}
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.08) 0 4px,rgba(0,0,0,0) 4px 8px),linear-gradient(90deg,#6B4341,#835552 45%,#5B3A38 72%,#472A28);
+  box-shadow:-2px 0 6px rgba(58,30,30,.3),2px 0 4px rgba(58,30,30,.18),inset 0 0 0 1px rgba(255,255,255,.07);}
 .cover-hint{position:absolute;left:12%;right:20%;bottom:7%;text-align:center;font-family:var(--hand);font-size:max(14px,4.1cqw);color:rgba(255,246,236,.88);}
 .cover-spiral{position:absolute;z-index:3;left:-20px;top:4%;bottom:4%;width:44px;background:var(--ring-lg) repeat-y 0 0/44px 26px;
   filter:drop-shadow(1px 1px 1px rgba(60,45,32,.2));}
@@ -353,19 +380,24 @@ html,body{overscroll-behavior-y:contain;}
 
 <!-- 표지 -->
 <div id="cover" class="cover-screen" onclick="if(event.clientX>=window.innerWidth/2)openBook()">
-  <div class="cover-book">
-    <div class="cover-spiral"></div>
-    <div class="cover-face">
-      <div class="cover-title-wrap">
-        <div class="cover-title" id="cover-title"></div>
-        <div class="cover-line"></div>
+  <div class="cover-wrap">
+    <div class="cover-edges bottom"></div>
+    <div class="cover-edges right"></div>
+    <div class="cover-book">
+      <div class="cover-spiral"></div>
+      <div class="cover-face">
+        <div class="cover-title-wrap">
+          <div class="cover-title" id="cover-title"></div>
+          <div class="cover-line"></div>
+          <div class="cover-line thin"></div>
+        </div>
+        <div class="cover-band"><span id="cover-year"></span></div>
+        <div class="cover-hint">눌러서 펼치기 →</div>
+        <div class="cover-elastic"></div>
       </div>
-      <div class="cover-band"><span id="cover-year"></span></div>
-      <div class="cover-hint">눌러서 펼치기 →</div>
-      <div class="cover-elastic"></div>
-    </div>
-    <div class="cover-tabs">
-      <button class="bookmark" style="--c:var(--tab1)" onclick="event.stopPropagation();openBook('calendar')">캘린더</button>
+      <div class="cover-tabs">
+        <button class="bookmark" style="--c:var(--tab1)" onclick="event.stopPropagation();openBook('calendar')">캘린더</button>
+      </div>
     </div>
   </div>
 </div>
@@ -502,7 +534,7 @@ html,body{overscroll-behavior-y:contain;}
 
 <script>
 // ===== 다이어리 제목 =====
-var DIARY_TITLE='갓생 다이어리';
+var DIARY_TITLE='다이어리';
 document.getElementById('cover-title').textContent=DIARY_TITLE;
 document.getElementById('header-title').textContent=DIARY_TITLE;
 
@@ -883,8 +915,11 @@ document.addEventListener('keydown',function(e){
 // ===== 표지 =====
 function openBook(tab){
   if(tab) showTab(tab);
+  var wasShown=isCoverShown();
   document.getElementById('cover').classList.add('open');
   document.body.classList.remove('cover-on');
+  // 표지가 들리는 사이 속지가 촤라락 넘어가며 펼쳐짐 (로그인 화면이 있을 땐 그 화면이 먼저 나옴)
+  if(wasShown&&!isGateShown()) setTimeout(function(){riffle(1,function(){});},420);
 }
 function closeBook(){
   window.scrollTo(0,0);
