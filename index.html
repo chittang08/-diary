@@ -220,38 +220,6 @@ body.cover-on{overflow:hidden;}
 .pages{display:grid;flex:1;}
 .page{grid-area:1/1;min-width:0;visibility:hidden;}
 .page.active{visibility:visible;}
-/* ===== 캘린더 (페이지 위에 따로 얹은 종이 한 장) ===== */
-.calendar{position:relative;margin:6px 8px 12px 4px;padding:20px 18px 18px;border-radius:7px;
-  background:var(--grain-paper),linear-gradient(180deg,#FFFDF8 0%,#FCF7EA 60%,#F9F2E1 100%);
-  border:1px solid rgba(94,74,54,.15);
-  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 0 0 1px rgba(255,255,255,.35) inset,0 12px 24px -18px rgba(70,52,36,.65);}
-.cal-head{position:relative;text-align:center;padding:6px 0 16px;}
-.cal-year{position:absolute;left:0;top:0;font-family:var(--hand);font-size:13px;letter-spacing:.16em;color:var(--ink2);opacity:.5;}
-.cal-month{font-family:var(--hand);font-size:40px;font-weight:700;line-height:1;color:var(--ink);letter-spacing:.02em;}
-.cal-month-en{display:block;margin-top:5px;font-family:var(--hand);font-size:12px;letter-spacing:.32em;color:var(--rose-deep);opacity:.75;padding-left:.32em;}
-.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;}
-.cal-dow{font-family:var(--hand);font-size:14px;text-align:center;color:var(--ink2);padding:0 0 6px;letter-spacing:.06em;}
-.cal-dow.sun{color:var(--rose-deep);}
-.cal-dow.sat{color:var(--blue);}
-.cal-day{position:relative;min-width:0;aspect-ratio:1/.82;border-radius:7px;padding:6px 7px;font-family:var(--hand);font-size:16px;line-height:1;color:var(--ink);
-  background:rgba(255,255,255,.34);border:1px solid rgba(94,74,54,.11);-webkit-tap-highlight-color:transparent;}
-.cal-day.sun{color:var(--rose-deep);}
-.cal-day.sat{color:var(--blue);}
-.cal-day.other{opacity:.3;}
-.cal-num{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;margin:-4px -5px;}
-.cal-day.today .cal-num{color:var(--rose-deep);font-weight:700;border:1.8px solid var(--rose);
-  border-radius:52% 46% 50% 48%/46% 54% 46% 54%;transform:rotate(-5deg);}   /* 손으로 그린 동그라미 */
-@media(max-width:500px){
-  .calendar{margin:2px 2px 8px 0;padding:14px 9px 10px;border-radius:6px;}
-  .cal-head{padding:4px 0 12px;}
-  .cal-year{font-size:11.5px;}
-  .cal-month{font-size:32px;}
-  .cal-month-en{font-size:10.5px;margin-top:4px;}
-  .cal-grid{gap:3px;}
-  .cal-dow{font-size:12.5px;padding-bottom:4px;}
-  .cal-day{aspect-ratio:1/1.15;padding:4px 4px;font-size:13.5px;border-radius:5px;}
-  .cal-num{min-width:20px;height:20px;margin:-3px -3px;}
-}
 .flip-stage{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;}
 .flip-sheet{position:absolute;transform-origin:left center;transform-style:preserve-3d;border-radius:2px 10px 10px 2px;will-change:transform,opacity;}
 .flip-face{position:absolute;inset:0;border-radius:inherit;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;}
@@ -322,17 +290,6 @@ html,body{overscroll-behavior-y:contain;}
   <div class="pages">
   <!-- 캘린더 -->
   <div id="tab-calendar" class="page active">
-    <section class="calendar" aria-label="이번 달 캘린더">
-      <div class="cal-head">
-        <span class="cal-year" id="cal-year"></span>
-        <div class="cal-month" id="cal-month"></div>
-        <span class="cal-month-en" id="cal-month-en"></span>
-      </div>
-      <div class="cal-grid" id="cal-grid">
-        <div class="cal-dow sun">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div><div class="cal-dow">수</div>
-        <div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow sat">토</div>
-      </div>
-    </section>
   </div>
 
   </div>
@@ -412,37 +369,6 @@ var now=new Date();
 document.getElementById('cover-year').textContent=now.getFullYear()+' DIARY';
 document.getElementById('today-date').textContent=now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일';
 
-// ===== 캘린더 =====
-var CAL_MONTHS_EN=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-function calKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-// 이번 달 달력을 그림. 앞뒤 달의 날짜는 흐리게 채워 넣어 7칸 줄을 맞춤
-function buildCalendar(base){
-  base=base||new Date();
-  var y=base.getFullYear(),m=base.getMonth();
-  document.getElementById('cal-year').textContent=y;
-  document.getElementById('cal-month').textContent=(m+1)+'월';
-  document.getElementById('cal-month-en').textContent=CAL_MONTHS_EN[m];
-  var grid=document.getElementById('cal-grid');
-  grid.querySelectorAll('.cal-day').forEach(function(c){c.remove();});
-  var startDow=new Date(y,m,1).getDay();
-  var daysIn=new Date(y,m+1,0).getDate();
-  var todayKey=calKey(new Date());
-  var total=Math.ceil((startDow+daysIn)/7)*7;
-  for(var i=0;i<total;i++){
-    var d=new Date(y,m,i-startDow+1);          // 1일 앞뒤로 넘치면 Date 가 알아서 앞뒤 달로 계산
-    var other=d.getMonth()!==m,dow=i%7;
-    var cell=document.createElement('div');
-    cell.className='cal-day'+(other?' other':'')+(dow===0?' sun':dow===6?' sat':'');
-    cell.dataset.date=calKey(d);
-    if(cell.dataset.date===todayKey) cell.classList.add('today');
-    var num=document.createElement('span');
-    num.className='cal-num';num.textContent=d.getDate();
-    cell.appendChild(num);
-    grid.appendChild(cell);
-  }
-}
-buildCalendar();
-
 // ===== 탭 =====
 var PAGE_ORDER=['calendar'];
 var currentTab='calendar';
@@ -463,13 +389,10 @@ function showTab(name){
   window.scrollTo(0,0);
 }
 
-// ===== 종이 넘기기 효과 (촤라락) =====
-// 앞으로: 종이 여러 장이 페이지를 덮은 뒤 위에서부터 한 장씩 빠르게 스프링 쪽으로 넘어가며 새 페이지를 보여줌
-// 뒤로: 넘어갔던 종이들이 스프링 쪽에서 차례로 되돌아와 쌓인 뒤 사라지며 이전 페이지를 보여줌
+// ===== 종이 넘기기 효과 =====
+// 앞으로: 빈 종이가 페이지를 덮은 뒤 왼쪽(스프링 쪽)으로 넘어가며 새 페이지를 보여줌
+// 뒤로: 넘어갔던 종이가 스프링 쪽에서 되돌아와 덮은 뒤 사라지며 이전 페이지를 보여줌
 var flipping=false;
-var RIFFLE_SHEETS=6;     // 한 번에 넘어가는 종이 장수
-var RIFFLE_GAP=62;       // 다음 장이 넘어가기 시작할 때까지 (ms)
-var RIFFLE_TURN=380;     // 한 장이 넘어가는 시간 (ms)
 function flipTo(name){
   if(flipping||name===currentTab) return;
   var dir=PAGE_ORDER.indexOf(name)>PAGE_ORDER.indexOf(currentTab)?1:-1;
@@ -478,61 +401,40 @@ function flipTo(name){
 
   var stage=document.createElement('div');
   stage.className='flip-stage';
-  var sheets=[];
-  for(var i=0;i<RIFFLE_SHEETS;i++){
-    var s=document.createElement('div');
-    s.className='flip-sheet';
-    s.innerHTML='<div class="flip-face front"><div class="flip-shade"></div></div><div class="flip-face back"><div class="flip-shade"></div></div>';
-    stage.appendChild(s);sheets.push(s);   // 뒤에 붙을수록 위에 쌓임
-  }
+  var sheet=document.createElement('div');
+  sheet.className='flip-sheet';
+  sheet.innerHTML='<div class="flip-face front"><div class="flip-shade"></div></div><div class="flip-face back"><div class="flip-shade"></div></div>';
+  stage.appendChild(sheet);
   document.body.appendChild(stage);
+  var shades=sheet.querySelectorAll('.flip-shade');
 
   function place(){
     var r=document.querySelector('.paper').getBoundingClientRect();
     var top=Math.max(r.top,0),bottom=Math.min(r.bottom,window.innerHeight);
-    sheets.forEach(function(s,i){
-      var depth=RIFFLE_SHEETS-1-i;   // 아래 장일수록 살짝 밀려 있어 여러 장처럼 보임
-      s.style.left=(r.left+depth*0.6)+'px';s.style.top=(top+depth*0.5)+'px';
-      s.style.width=r.width+'px';s.style.height=(bottom-top)+'px';
-    });
+    sheet.style.left=r.left+'px';sheet.style.top=top+'px';
+    sheet.style.width=r.width+'px';sheet.style.height=(bottom-top)+'px';
     stage.style.perspective=Math.round(r.width*2.4)+'px';
     stage.style.perspectiveOrigin=r.left+'px 50%';
   }
-  function shade(s,duration,delay){
-    s.querySelectorAll('.flip-shade').forEach(function(el){el.animate([{opacity:0},{opacity:1,offset:0.5},{opacity:0}],{duration:duration,delay:delay||0,fill:'forwards'});});
+  function shade(duration){
+    shades.forEach(function(s){s.animate([{opacity:0},{opacity:1,offset:0.5},{opacity:0}],{duration:duration,fill:'forwards'});});
   }
   function finish(){stage.remove();flipping=false;}
-  // onfinish 가 늦게 오는 환경(화면이 가려지거나 절전 중)에서도 제때 다음 단계로 넘어가도록 타이머와 둘 중 먼저 오는 쪽을 씀
-  function whenDone(anim,ms,fn){var done=false;function go(){if(done)return;done=true;fn();}anim.onfinish=go;setTimeout(go,ms+40);}
-  var turnEase='cubic-bezier(0.5,0.05,0.4,1)';
-  var riffleTotal=(RIFFLE_SHEETS-1)*RIFFLE_GAP+RIFFLE_TURN;
+  var turnEase='cubic-bezier(0.45,0.05,0.35,1)';
   place();
 
   if(dir>0){
-    whenDone(stage.animate([{opacity:0},{opacity:1}],{duration:140,easing:'ease-out',fill:'forwards'}),140,function(){
+    sheet.animate([{opacity:0},{opacity:1}],{duration:170,easing:'ease-out',fill:'forwards'}).onfinish=function(){
       showTab(name);place();
-      var last=null;
-      for(var k=0;k<RIFFLE_SHEETS;k++){          // 맨 위 장부터 차례로
-        var s=sheets[RIFFLE_SHEETS-1-k],delay=k*RIFFLE_GAP;
-        shade(s,RIFFLE_TURN,delay);
-        last=s.animate([{transform:'rotateY(0deg)',opacity:1},{opacity:1,offset:0.85},{transform:'rotateY(-180deg)',opacity:0}],
-          {duration:RIFFLE_TURN,delay:delay,easing:turnEase,fill:'forwards'});
-      }
-      whenDone(last,riffleTotal,finish);
-    });
+      shade(700);
+      sheet.animate([{transform:'rotateY(0deg)',opacity:1},{opacity:1,offset:0.8},{transform:'rotateY(-180deg)',opacity:0}],{duration:700,easing:turnEase,fill:'forwards'}).onfinish=finish;
+    };
   } else {
-    var lastBack=null;
-    sheets.forEach(function(s,k){                 // 맨 아래 장부터 차례로 돌아와 쌓임
-      var delay=k*RIFFLE_GAP;
-      s.style.transform='rotateY(-180deg)';s.style.opacity='0';
-      shade(s,RIFFLE_TURN,delay);
-      lastBack=s.animate([{transform:'rotateY(-180deg)',opacity:0},{opacity:1,offset:0.15},{transform:'rotateY(0deg)',opacity:1}],
-        {duration:RIFFLE_TURN,delay:delay,easing:turnEase,fill:'forwards'});
-    });
-    whenDone(lastBack,riffleTotal,function(){
+    shade(650);
+    sheet.animate([{transform:'rotateY(-180deg)',opacity:0},{opacity:1,offset:0.2},{transform:'rotateY(0deg)',opacity:1}],{duration:650,easing:turnEase,fill:'forwards'}).onfinish=function(){
       showTab(name);place();
-      whenDone(stage.animate([{opacity:1},{opacity:0}],{duration:220,easing:'ease-in',fill:'forwards'}),220,finish);
-    });
+      sheet.animate([{opacity:1},{opacity:0}],{duration:240,easing:'ease-in',fill:'forwards'}).onfinish=finish;
+    };
   }
 }
 
@@ -550,7 +452,7 @@ function goPrev(){
   if(i>0) flipTo(PAGE_ORDER[i-1]);
   else closeBook();
 }
-var TAP_IGNORE='button,input,textarea,select,a,label,[onclick],.bookmark,.cal-grid';
+var TAP_IGNORE='button,input,textarea,select,a,label,[onclick],.bookmark';
 function isGateShown(){return !document.getElementById('gate').hidden;}
 document.addEventListener('click',function(e){
   if(isCoverShown()||isGateShown()||e.target.closest('#cover')) return;
