@@ -356,7 +356,10 @@ body.cover-on{overflow:hidden;}
   box-shadow:0 16px 32px -14px rgba(70,52,36,.45);}
 .flip-face.back{transform:rotateY(180deg);background:var(--grain-paper),var(--rule),linear-gradient(270deg,rgba(94,74,54,.09),rgba(94,74,54,0) 12%),linear-gradient(180deg,#F9F1DE,#F3E8D2);
   box-shadow:0 16px 32px -14px rgba(70,52,36,.45);}
-.flip-shade{position:absolute;inset:0;opacity:0;background:linear-gradient(90deg,rgba(70,55,42,0) 30%,rgba(70,55,42,.2));}
+/* 넘어가는 종이 앞면에 복사된 페이지: 실제 페이지와 똑같은 자리·크기로 */
+.flip-face .paper{position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;border-radius:inherit;box-shadow:none;pointer-events:none;}
+.flip-face .paper::after{display:none;}   /* 마스킹 테이프는 실제 페이지 것만 */
+.flip-shade{position:absolute;inset:0;z-index:10;opacity:0;background:linear-gradient(90deg,rgba(70,55,42,0) 30%,rgba(70,55,42,.2));}
 .flip-face.back .flip-shade{background:linear-gradient(270deg,rgba(70,55,42,0) 30%,rgba(70,55,42,.18));}
 .page-foot{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:22px;font-family:var(--hand);font-size:17px;color:var(--ink3);user-select:none;}
 button{cursor:pointer;font-family:var(--body);-webkit-tap-highlight-color:transparent;}
@@ -802,81 +805,95 @@ function showTab(name){
 }
 
 // ===== 종이 넘기기 효과 (촤라락) =====
-// 앞으로: 종이 여러 장이 페이지를 덮은 뒤 위에서부터 한 장씩 빠르게 스프링 쪽으로 넘어가며 새 화면을 보여줌
-// 뒤로: 넘어갔던 종이들이 스프링 쪽에서 차례로 되돌아와 쌓인 뒤 사라지며 이전 화면을 보여줌
-// mid(): 종이에 가려져 있는 동안 실제 화면을 바꾸는 함수 (페이지 바꾸기, 로그인 화면 닫기 등)
+// 화면을 덮지 않고 책장을 넘기듯이:
+//   앞으로: 지금 보던 페이지(내용 그대로)가 스프링 쪽으로 넘어가고, 그 밑의 속지 몇 장이 촤라락 따라 넘어가며 새 페이지가 드러남
+//   뒤로:   왼쪽(넘겨 둔 쪽)에서 속지들이 차례로 넘어와 쌓이고, 마지막에 이전 페이지가 내용 그대로 넘어와 자리를 잡음
+// opts.content : 내용이 있는 페이지를 같이 넘길지 (페이지 사이 이동). 표지 열기·로그인 뒤처럼 내용이 같을 땐 속지만 넘김
+// opts.mid     : 종이에 가려진 동안 실제 화면을 바꾸는 함수 (페이지 바꾸기, 로그인 화면 닫기)
+// opts.done    : 끝났을 때. 인자로 받은 release() 를 불러야 넘긴 종이가 치워짐 (표지가 덮일 때까지 잠깐 들고 있을 수 있음)
 var flipping=false;
-var RIFFLE_SHEETS=6;     // 한 번에 넘어가는 종이 장수
+var RIFFLE_SHEETS=6;     // 한 번에 넘어가는 종이 장수 (내용 페이지 포함)
 var RIFFLE_GAP=62;       // 다음 장이 넘어가기 시작할 때까지 (ms)
-var RIFFLE_TURN=380;     // 한 장이 넘어가는 시간 (ms)
+var RIFFLE_TURN=380;     // 속지 한 장이 넘어가는 시간 (ms)
+var RIFFLE_PAGE=440;     // 내용 페이지가 넘어가는 시간 (ms)
 function canAnimate(){return !!Element.prototype.animate&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches;}
-function riffle(dir,mid){
-  if(flipping||!canAnimate()){mid();return;}
+function riffle(dir,opts){
+  opts=opts||{};
+  var mid=opts.mid||function(){};
+  if(flipping||!canAnimate()){mid();if(opts.done)opts.done(function(){});return;}
   flipping=true;
+  var paperEl=document.querySelector('.paper');
+  var r=paperEl.getBoundingClientRect();
 
   var stage=document.createElement('div');
   stage.className='flip-stage';
-  var sheets=[];
-  for(var i=0;i<RIFFLE_SHEETS;i++){
+  stage.style.perspective=Math.round(r.width*2.4)+'px';
+  stage.style.perspectiveOrigin=r.left+'px 50%';
+  function makeSheet(withContent,depth){
     var s=document.createElement('div');
     s.className='flip-sheet';
     s.innerHTML='<div class="flip-face front"><div class="flip-shade"></div></div><div class="flip-face back"><div class="flip-shade"></div></div>';
-    stage.appendChild(s);sheets.push(s);   // 뒤에 붙을수록 위에 쌓임
-  }
-  document.body.appendChild(stage);
-
-  function place(){
-    var r=document.querySelector('.paper').getBoundingClientRect();
-    var top=Math.max(r.top,0),bottom=Math.min(r.bottom,window.innerHeight);
-    sheets.forEach(function(s,i){
-      var depth=RIFFLE_SHEETS-1-i;   // 아래 장일수록 살짝 밀려 있어 여러 장처럼 보임
-      s.style.left=(r.left+depth*0.6)+'px';s.style.top=(top+depth*0.5)+'px';
-      s.style.width=r.width+'px';s.style.height=(bottom-top)+'px';
-    });
-    stage.style.perspective=Math.round(r.width*2.4)+'px';
-    stage.style.perspectiveOrigin=r.left+'px 50%';
+    s.style.left=(r.left+depth*0.6)+'px';s.style.top=(r.top+depth*0.5)+'px';   // 아래 장일수록 살짝 밀려 여러 장처럼 보임
+    s.style.width=r.width+'px';s.style.height=r.height+'px';
+    if(withContent){   // 지금 화면의 페이지를 그대로 복사해 앞면에 붙임
+      var c=paperEl.cloneNode(true);
+      c.querySelectorAll('[id]').forEach(function(e){e.removeAttribute('id');});
+      c.setAttribute('inert','');c.setAttribute('aria-hidden','true');
+      s.querySelector('.front').insertBefore(c,s.querySelector('.front').firstChild);
+    }
+    stage.appendChild(s);
+    return s;
   }
   function shade(s,duration,delay){
     s.querySelectorAll('.flip-shade').forEach(function(el){el.animate([{opacity:0},{opacity:1,offset:0.5},{opacity:0}],{duration:duration,delay:delay||0,fill:'forwards'});});
   }
-  function finish(){stage.remove();flipping=false;}
+  function release(){stage.remove();flipping=false;}
+  function finish(){if(opts.done)opts.done(release);else release();}
   // onfinish 가 늦게 오는 환경(화면이 가려지거나 절전 중)에서도 제때 다음 단계로 넘어가도록 타이머와 둘 중 먼저 오는 쪽을 씀
   function whenDone(anim,ms,fn){var done=false;function go(){if(done)return;done=true;fn();}anim.onfinish=go;setTimeout(go,ms+40);}
   var turnEase='cubic-bezier(0.5,0.05,0.4,1)';
-  var riffleTotal=(RIFFLE_SHEETS-1)*RIFFLE_GAP+RIFFLE_TURN;
-  place();
+  var blanks=opts.content?RIFFLE_SHEETS-1:RIFFLE_SHEETS;
+  var turnOut=[{transform:'rotateY(0deg)',opacity:1},{opacity:1,offset:0.85},{transform:'rotateY(-180deg)',opacity:0}];
+  var turnIn=[{transform:'rotateY(-180deg)',opacity:0},{opacity:1,offset:0.15},{transform:'rotateY(0deg)',opacity:1}];
 
   if(dir>0){
-    whenDone(stage.animate([{opacity:0},{opacity:1}],{duration:140,easing:'ease-out',fill:'forwards'}),140,function(){
-      mid();place();
-      var last=null;
-      for(var k=0;k<RIFFLE_SHEETS;k++){          // 맨 위 장부터 차례로
-        var s=sheets[RIFFLE_SHEETS-1-k],delay=k*RIFFLE_GAP;
-        shade(s,RIFFLE_TURN,delay);
-        last=s.animate([{transform:'rotateY(0deg)',opacity:1},{opacity:1,offset:0.85},{transform:'rotateY(-180deg)',opacity:0}],
-          {duration:RIFFLE_TURN,delay:delay,easing:turnEase,fill:'forwards'});
-      }
-      whenDone(last,riffleTotal,finish);
-    });
+    // 아래쪽 속지부터 쌓고, 맨 위에 지금 페이지(내용) — 아직은 실제 화면과 똑같이 보임
+    var sheets=[];
+    for(var i=0;i<blanks;i++) sheets.push(makeSheet(false,blanks-i));
+    if(opts.content) sheets.push(makeSheet(true,0));
+    document.body.appendChild(stage);
+    mid();   // 실제 화면은 종이 더미 밑에서 미리 바뀌어 있음
+    var last=null,total=0;
+    for(var k=0;k<sheets.length;k++){            // 맨 위 장부터 차례로 넘어감
+      var s=sheets[sheets.length-1-k],delay=k*RIFFLE_GAP,dur=(k===0&&opts.content)?RIFFLE_PAGE:RIFFLE_TURN;
+      shade(s,dur,delay);
+      last=s.animate(turnOut,{duration:dur,delay:delay,easing:turnEase,fill:'forwards'});
+      total=Math.max(total,delay+dur);
+    }
+    whenDone(last,total,finish);
   } else {
-    var lastBack=null;
-    sheets.forEach(function(s,k){                 // 맨 아래 장부터 차례로 돌아와 쌓임
-      var delay=k*RIFFLE_GAP;
+    // 지금 페이지(내용)를 맨 밑에 그대로 두고, 왼쪽에서 속지들이 넘어와 쌓인 뒤 마지막에 이전 페이지가 넘어옴
+    if(opts.content) makeSheet(true,0);
+    document.body.appendChild(stage);
+    mid();   // 실제 화면은 복사본 밑에서 미리 바뀌어 있음
+    var incoming=[];
+    for(var j=0;j<blanks;j++) incoming.push(makeSheet(false,blanks-j));
+    if(opts.content) incoming.push(makeSheet(true,0));   // 바뀐 실제 화면을 복사 → 마지막에 넘어와 자리를 잡음
+    var lastIn=null,totalIn=0;
+    incoming.forEach(function(s,k){
+      var delay=k*RIFFLE_GAP,dur=(k===incoming.length-1&&opts.content)?RIFFLE_PAGE:RIFFLE_TURN;
       s.style.transform='rotateY(-180deg)';s.style.opacity='0';
-      shade(s,RIFFLE_TURN,delay);
-      lastBack=s.animate([{transform:'rotateY(-180deg)',opacity:0},{opacity:1,offset:0.15},{transform:'rotateY(0deg)',opacity:1}],
-        {duration:RIFFLE_TURN,delay:delay,easing:turnEase,fill:'forwards'});
+      shade(s,dur,delay);
+      lastIn=s.animate(turnIn,{duration:dur,delay:delay,easing:turnEase,fill:'forwards'});
+      totalIn=Math.max(totalIn,delay+dur);
     });
-    whenDone(lastBack,riffleTotal,function(){
-      mid();place();
-      whenDone(stage.animate([{opacity:1},{opacity:0}],{duration:220,easing:'ease-in',fill:'forwards'}),220,finish);
-    });
+    whenDone(lastIn,totalIn,finish);
   }
 }
 function flipTo(name){
   if(flipping||name===currentTab) return;
   var dir=PAGE_ORDER.indexOf(name)>PAGE_ORDER.indexOf(currentTab)?1:-1;
-  riffle(dir,function(){showTab(name);});
+  riffle(dir,{content:true,mid:function(){showTab(name);}});
 }
 
 // ===== 페이지 넘기기 (화면 왼쪽 = 이전, 오른쪽 = 다음) =====
@@ -919,12 +936,17 @@ function openBook(tab){
   document.getElementById('cover').classList.add('open');
   document.body.classList.remove('cover-on');
   // 표지가 들리는 사이 속지가 촤라락 넘어가며 펼쳐짐 (로그인 화면이 있을 땐 그 화면이 먼저 나옴)
-  if(wasShown&&!isGateShown()) setTimeout(function(){riffle(1,function(){});},420);
+  if(wasShown&&!isGateShown()) setTimeout(function(){riffle(1,{});},420);
 }
 function closeBook(){
+  if(flipping||isCoverShown()) return;
   window.scrollTo(0,0);
-  document.getElementById('cover').classList.remove('open');
-  document.body.classList.add('cover-on');
+  // 속지들이 뒤로 촤라락 넘어와 쌓인 다음 표지가 덮임. 표지가 다 덮일 때까지 넘어온 종이는 그대로 둠
+  riffle(-1,{done:function(release){
+    document.getElementById('cover').classList.remove('open');
+    document.body.classList.add('cover-on');
+    setTimeout(release,400);
+  }});
 }
 
 // ===== Supabase (커플 계정 · 연결) =====
@@ -968,7 +990,7 @@ function renderGate(){
 
 // 로그인·가입·연결을 마치고 다이어리로 들어갈 때는 종이가 촤라락 넘어가며 열림
 function enterDiary(){
-  if(isGateShown()&&!isCoverShown()) riffle(1,function(){showGateSection(null);});
+  if(isGateShown()&&!isCoverShown()) riffle(1,{mid:function(){showGateSection(null);}});
   else showGateSection(null);
 }
 
