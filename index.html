@@ -433,7 +433,6 @@ html,body{overscroll-behavior-y:contain;}
 </div>
 <!-- 사진 크게 보기 -->
 <div id="photo-view" class="photo-view" hidden>
-  <img alt="">
   <div class="photo-view-cap"></div>
 </div>
 
@@ -730,11 +729,13 @@ async function deletePhoto(p){
 function openPhotoView(p){
   if(!p.url) return;
   var v=document.getElementById('photo-view');
-  v.querySelector('img').src=p.url;
+  var img=document.createElement('img');   // 볼 때만 만들고 닫으면 없앰
+  img.src=p.url;img.alt='';
+  v.insertBefore(img,v.firstChild);
   v.querySelector('.photo-view-cap').textContent=nickOf(p.uploader_id)+' · '+openDayKey;
   v.hidden=false;
 }
-function closePhotoView(){var v=document.getElementById('photo-view');v.hidden=true;v.querySelector('img').removeAttribute('src');}
+function closePhotoView(){var v=document.getElementById('photo-view');v.hidden=true;v.querySelectorAll('img').forEach(function(i){i.remove();});}
 document.getElementById('photo-view').addEventListener('click',closePhotoView);
 
 // 처음엔 오늘이 있는 달을 보여줌 (사진은 로그인·커플 확인 뒤에 불러옴)
