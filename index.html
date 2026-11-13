@@ -789,7 +789,7 @@ var PAGE_ORDER=['calendar'];
 var currentTab='calendar';
 
 function showTab(name){
-  document.querySelectorAll('.page').forEach(function(p){
+  document.querySelectorAll('.book .page').forEach(function(p){   // 넘어가는 중인 복사본(.flip-stage)은 건드리지 않음
     var on=p.id==='tab-'+name;
     p.classList.toggle('active',on);
     if(on) p.removeAttribute('inert'); else p.setAttribute('inert','');
@@ -827,7 +827,7 @@ function riffle(dir,opts){
 
   var stage=document.createElement('div');
   stage.className='flip-stage';
-  stage.style.perspective=Math.round(r.width*2.4)+'px';
+  stage.style.perspective=Math.round(r.width*12)+'px';   // 가까우면 넘어가는 장이 화면 쪽으로 크게 튀어나와 보여서 멀리서 보듯 둠
   stage.style.perspectiveOrigin=r.left+'px 50%';
   function makeSheet(withContent,depth){
     var s=document.createElement('div');
@@ -853,8 +853,9 @@ function riffle(dir,opts){
   function whenDone(anim,ms,fn){var done=false;function go(){if(done)return;done=true;fn();}anim.onfinish=go;setTimeout(go,ms+40);}
   var turnEase='cubic-bezier(0.5,0.05,0.4,1)';
   var blanks=opts.content?RIFFLE_SHEETS-1:RIFFLE_SHEETS;
-  var turnOut=[{transform:'rotateY(0deg)',opacity:1},{opacity:1,offset:0.85},{transform:'rotateY(-180deg)',opacity:0}];
-  var turnIn=[{transform:'rotateY(-180deg)',opacity:0},{opacity:1,offset:0.15},{transform:'rotateY(0deg)',opacity:1}];
+  // 장이 세로로 서는(90°) 순간을 지나면 왼쪽(넘겨 둔 쪽)으로 사라진 것으로 치고 더는 안 그림 → 화면 쪽으로 덮쳐 오는 느낌이 없음
+  var turnOut=[{transform:'rotateY(0deg)',opacity:1},{opacity:1,offset:0.5},{opacity:0,offset:0.62},{transform:'rotateY(-180deg)',opacity:0}];
+  var turnIn=[{transform:'rotateY(-180deg)',opacity:0},{opacity:0,offset:0.38},{opacity:1,offset:0.5},{transform:'rotateY(0deg)',opacity:1}];
 
   if(dir>0){
     // 아래쪽 속지부터 쌓고, 맨 위에 지금 페이지(내용) — 아직은 실제 화면과 똑같이 보임
