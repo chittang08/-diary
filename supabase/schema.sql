@@ -18,7 +18,7 @@
 --   - 모든 테이블과 사진은 "같은 커플인 두 사람"만 읽고 쓸 수 있음 (RLS)
 --   - 로그인 안 한 사람(anon)은 테이블·함수에 아예 접근 권한이 없음
 --   - 수정은 바꿔도 되는 칸만 열어 둠 (예: 커플은 사귄 날만)
---   - 초대 코드는 15분 안에 5번 틀리면 잠시 잠김
+--   - 초대 코드는 15분 안에 5번 틀리면 잠시 잠김, 둘이 연결되면 바로 무효화(null)
 -- =====================================================================
 
 
@@ -32,7 +32,7 @@ create table public.profiles (
 
 create table public.couples (
   id           uuid primary key default gen_random_uuid(),
-  invite_code  text not null unique,                   -- 기본값은 아래 generate_invite_code() 에서 지정
+  invite_code  text unique,                            -- 기본값은 아래 generate_invite_code() 에서 지정. 둘이 연결되면 null (무효화)
   started_on   date,                                   -- 사귄 날 (D-day 계산용)
   created_at   timestamptz not null default now()
 );
@@ -211,7 +211,8 @@ begin
 end
 $$;
 
--- 상대가 준 초대 코드로 연결. 코드를 못 찾으면 null (틀린 횟수 기록), 15분에 5번 틀리면 잠금
+-- 상대가 준 초대 코드로 연결. 코드를 못 찾으면 null (틀린 횟수 기록), 15분에 5번 틀리면 잠금.
+-- 연결되는 순간 초대 코드는 지워져서(null) 다시 쓸 수 없음
 create or replace function public.join_couple(code text)
 returns public.couples
 language plpgsql security definer set search_path = public
@@ -243,6 +244,8 @@ begin
   end if;
 
   insert into public.couple_members (couple_id, user_id) values (c.id, auth.uid());
+  -- 둘이 연결됐으니 초대 코드는 무효화
+  update public.couples set invite_code = null where id = c.id returning * into c;
   delete from public.couple_join_attempts where user_id = auth.uid();
   return c;
 end

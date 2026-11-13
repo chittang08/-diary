@@ -507,11 +507,11 @@ function renderGate(){
     document.getElementById('gate-nick').textContent=(myProfile&&myProfile.nickname)||'';
     showGateSection('gate-couple');
   }
-  else if(justCreated){
+  else if(justCreated&&!partner&&couple.invite_code){
     document.getElementById('invite-code').textContent=couple.invite_code;
     showGateSection('gate-wait');
   }
-  else showGateSection(null);
+  else {justCreated=false;showGateSection(null);}   // 짝꿍이 들어오면 코드는 무효화되고 바로 다이어리로
   renderCoupleHeader();
 }
 
@@ -523,13 +523,15 @@ function renderCoupleHeader(){
   el.innerHTML='';
   if(partner){
     el.textContent='♥ '+myNick+' & '+(partner.nickname||'짝꿍');
-  } else {
+  } else if(couple.invite_code){
     el.appendChild(document.createTextNode('짝꿍 기다리는 중 · 초대 코드 '));
     var code=document.createElement('span');
     code.className='code';code.title='눌러서 복사';
     code.textContent=couple.invite_code;
     code.onclick=function(){copyInvite(code);};
     el.appendChild(code);
+  } else {
+    el.textContent='♥ '+myNick;
   }
 }
 
@@ -633,12 +635,12 @@ document.getElementById('join-form').addEventListener('submit',async function(e)
   if(code.length!==6){msg.textContent='초대 코드 6자리를 입력해 주세요.';return;}
   var r=await sb.rpc('join_couple',{code:code});
   if(r.error){msg.textContent=r.error.message;return;}
-  if(!r.data||!r.data.id){msg.textContent='초대 코드를 찾을 수 없어요. 다시 확인해 주세요. (15분에 5번까지)';return;}
+  if(!r.data||!r.data.id){msg.textContent='초대 코드를 찾을 수 없어요. 이미 연결이 끝난 코드일 수도 있어요. (15분에 5번까지)';return;}
   await refreshSession({user:me});
 });
 
 function copyInvite(el){
-  if(!couple) return;
+  if(!couple||!couple.invite_code) return;
   var done=function(){var t=el.textContent;el.textContent='복사했어요!';setTimeout(function(){el.textContent=t;},1200);};
   if(navigator.clipboard) navigator.clipboard.writeText(couple.invite_code).then(done,function(){});
 }
