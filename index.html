@@ -226,7 +226,13 @@ body.cover-on{overflow:hidden;}
   border:1px solid rgba(94,74,54,.15);
   box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 0 0 1px rgba(255,255,255,.35) inset,0 12px 24px -18px rgba(70,52,36,.65);}
 .cal-head{position:relative;text-align:center;padding:6px 0 16px;}
-.cal-year{position:absolute;left:0;top:0;font-family:var(--hand);font-size:13px;letter-spacing:.16em;color:var(--ink2);opacity:.5;}
+.cal-year-wrap{position:absolute;left:0;top:0;display:flex;align-items:center;gap:5px;}
+.cal-year{font-family:var(--hand);font-size:13px;letter-spacing:.16em;color:var(--ink2);opacity:.5;}
+.cal-year-nav{display:flex;flex-direction:column;gap:2px;}
+.cal-year-nav button{width:17px;height:17px;border:1px solid rgba(94,74,54,.3);border-radius:50%;background:rgba(255,253,245,.7);
+  font-size:7px;line-height:1;color:var(--ink2);display:flex;align-items:center;justify-content:center;padding:0;opacity:.7;transition:all .18s;}
+.cal-year-nav button:hover{opacity:1;color:var(--rose-deep);border-color:rgba(191,110,126,.55);background:#FFFCF3;}
+.cal-year-nav button:disabled{opacity:.2;cursor:default;}
 .cal-title-row{display:flex;align-items:center;justify-content:center;gap:10px;}
 .cal-month{border:none;background:none;padding:0 6px;font-family:var(--hand);font-size:40px;font-weight:700;line-height:1;color:var(--ink);letter-spacing:.02em;border-radius:8px;}
 .cal-month:hover{background:rgba(246,201,210,.35);}
@@ -248,8 +254,14 @@ body.cover-on{overflow:hidden;}
 .cal-num{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;margin:-4px -5px;border-radius:50%;}
 .cal-day.today .cal-num{color:var(--rose-deep);font-weight:700;border:1.8px solid var(--rose);
   border-radius:52% 46% 50% 48%/46% 54% 46% 54%;transform:rotate(-5deg);}   /* 손으로 그린 동그라미 */
-.cal-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
-.cal-day.has-photo .cal-num{background:rgba(255,253,245,.88);box-shadow:0 0 0 1px rgba(94,74,54,.08);}
+/* 칸 안의 폴라로이드: 흰 테두리에 아래가 두꺼움. 여러 장이면 살짝 흩어 쌓임 */
+.cal-pola{position:absolute;left:50%;top:54%;width:64%;aspect-ratio:1/1.22;transform:translate(-50%,-50%) rotate(var(--r,-4deg));
+  background:#FFFEFB;padding:5% 5% 0;border-radius:1px;
+  box-shadow:0 2px 6px -2px rgba(60,45,30,.5),0 0 0 .5px rgba(94,74,54,.14);}
+.cal-pola img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#EEE6D6;}
+.cal-pola.p2{--r:6deg;left:58%;top:50%;}
+.cal-pola.p3{--r:-11deg;left:42%;top:58%;}
+.cal-day.has-photo .cal-num{background:rgba(255,253,245,.9);box-shadow:0 0 0 1px rgba(94,74,54,.08);}
 .cal-count{position:absolute;right:4px;bottom:4px;z-index:1;font-size:10.5px;font-family:var(--hand);color:var(--ink2);
   background:rgba(255,253,245,.9);border-radius:999px;padding:1px 6px;}
 
@@ -267,10 +279,11 @@ body.cover-on{overflow:hidden;}
 .day-sub{font-family:var(--hand);font-size:14px;color:var(--ink3);margin:3px 0 14px;}
 .day-photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px;margin-bottom:14px;}
 .day-photos:empty{display:none;}
-.day-photo{position:relative;margin:0;padding:6px 6px 20px;background:#FFFDF7;border-radius:2px;
-  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 8px 16px -10px rgba(70,52,36,.6),0 0 0 1px rgba(94,74,54,.08);}
-.day-photo.tilt-l{transform:rotate(-1.6deg);}
-.day-photo.tilt-r{transform:rotate(1.4deg);}
+.day-photo{position:relative;margin:0;padding:7px 7px 26px;background:#FFFEFB;border-radius:1px;
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 10px 18px -10px rgba(70,52,36,.65),0 0 0 1px rgba(94,74,54,.1);}
+.day-photo.tilt-l{transform:rotate(-3deg);}
+.day-photo.tilt-r{transform:rotate(2.4deg) translateY(4px);}
+.day-photo:nth-child(3n){transform:rotate(-1.2deg) translateY(-3px);}
 .day-photo img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:1px;cursor:zoom-in;background:var(--bg3);}
 .day-photo figcaption{position:absolute;left:0;right:0;bottom:3px;text-align:center;font-family:var(--hand);font-size:12px;color:var(--ink2);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 6px;}
@@ -288,7 +301,8 @@ body.cover-on{overflow:hidden;}
 .photo-view-cap{font-family:var(--hand);font-size:14px;color:rgba(255,246,236,.85);}
 @media(max-width:500px){
   .calendar{margin:2px 2px 8px 0;padding:14px 9px 10px;border-radius:6px;}
-  .cal-head{padding:4px 0 12px;}
+  .cal-head{padding:0 0 10px;}
+  .cal-year-wrap{position:static;justify-content:flex-start;margin-bottom:2px;}   /* 작은 화면에선 ‹ › 와 겹치지 않게 윗줄로 */
   .cal-year{font-size:11.5px;}
   .cal-month{font-size:32px;}
   .cal-nav{width:30px;height:30px;font-size:20px;}
@@ -375,7 +389,13 @@ html,body{overscroll-behavior-y:contain;}
   <div id="tab-calendar" class="page active">
     <section class="calendar" aria-label="캘린더">
       <div class="cal-head">
-        <span class="cal-year" id="cal-year"></span>
+        <div class="cal-year-wrap">
+          <span class="cal-year" id="cal-year"></span>
+          <div class="cal-year-nav">
+            <button type="button" id="cal-year-up" onclick="calMove(12)" aria-label="다음 해">▲</button>
+            <button type="button" id="cal-year-down" onclick="calMove(-12)" aria-label="지난 해">▼</button>
+          </div>
+        </div>
         <div class="cal-title-row">
           <button type="button" class="cal-nav" id="cal-prev" onclick="calMove(-1)" aria-label="지난달">‹</button>
           <button type="button" class="cal-month" id="cal-month" onclick="calToday()" title="오늘이 있는 달로"></button>
@@ -505,6 +525,8 @@ function buildCalendar(y,m){
   document.getElementById('cal-month-en').textContent=CAL_MONTHS_EN[m];
   document.getElementById('cal-prev').disabled=(y===CAL_MIN&&m===0);
   document.getElementById('cal-next').disabled=(y===CAL_MAX&&m===11);
+  document.getElementById('cal-year-down').disabled=(y===CAL_MIN);
+  document.getElementById('cal-year-up').disabled=(y===CAL_MAX);
   var grid=document.getElementById('cal-grid');
   grid.querySelectorAll('.cal-day').forEach(function(c){c.remove();});
   var startDow=new Date(y,m,1).getDay();
@@ -567,14 +589,19 @@ async function loadMonthPhotos(){
 // 달력 칸 안에 그날 첫 사진을 깔고, 여러 장이면 장수를 표시
 function renderMonthPhotos(){
   document.querySelectorAll('#cal-grid .cal-day').forEach(function(cell){
-    cell.querySelectorAll('.cal-photo,.cal-count').forEach(function(x){x.remove();});
+    cell.querySelectorAll('.cal-pola,.cal-count').forEach(function(x){x.remove();});
     var list=cell.classList.contains('other')?null:monthPhotos[cell.dataset.date];
     cell.classList.toggle('has-photo',!!(list&&list.length));
     if(!list||!list.length) return;
-    if(list[0].url){
+    // 최대 3장을 폴라로이드로 겹쳐 놓음. 뒤에 깔릴 것부터 붙이고 첫 사진이 맨 위
+    var shown=list.slice(0,3).filter(function(p){return p.url;});
+    for(var i=shown.length-1;i>=0;i--){
+      var pola=document.createElement('div');
+      pola.className='cal-pola'+(i?' p'+(i+1):'');
       var img=document.createElement('img');
-      img.className='cal-photo';img.src=list[0].url;img.alt='';img.loading='lazy';
-      cell.insertBefore(img,cell.firstChild);
+      img.src=shown[i].url;img.alt='';img.loading='lazy';
+      pola.appendChild(img);
+      cell.insertBefore(pola,cell.firstChild);
     }
     if(list.length>1){
       var n=document.createElement('span');
