@@ -48,11 +48,15 @@ body{background-color:var(--desk);color:var(--ink);font-family:var(--body);font-
   background-attachment:fixed;}
 ::selection{background:rgba(246,201,210,.7);color:var(--ink);}
 :focus-visible{outline:2px solid rgba(161,90,102,.45);outline-offset:2px;}
+/* 공책 한 권의 크기: 표지와 모든 페이지가 똑같이 씀. 화면 높이에 맞추고 가로:세로 ≈ 3:4 */
+:root{--book-h:calc(100vh - 70px);--book-w:min(880px,calc(var(--book-h) * 0.74));}
 .container{max-width:960px;margin:0 auto;padding:28px 54px 42px 26px;}
+.book{width:var(--book-w);max-width:100%;margin:0 auto;}
 
 /* ===== 다이어리 본문 ===== */
 .book{position:relative;}
-.paper{position:relative;z-index:2;border-radius:3px 10px 10px 3px;padding:24px 26px 34px 50px;min-height:calc(100vh - 70px);
+.paper{position:relative;z-index:2;border-radius:3px 10px 10px 3px;padding:24px 26px 34px 50px;height:var(--book-h);overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
+  overscroll-behavior-y:contain;
   background:
     var(--grain-paper),
     var(--rule),
@@ -162,7 +166,8 @@ body.cover-on{overflow:hidden;}
   transition:opacity 0.35s ease,visibility 0s 0s;}
 .cover-screen.open{opacity:0;visibility:hidden;pointer-events:none;transition:opacity 0.45s ease 0.45s,visibility 0s 0.9s;}
 .cover-screen .book{perspective:4200px;perspective-origin:0 50%;}   /* 스프링 쪽을 축으로, 멀리서 보듯 */
-.cover-wrap{position:relative;width:100%;height:calc(100vh - 70px);}   /* .paper 의 min-height 와 같음 */
+.cover-wrap{position:relative;width:100%;height:var(--book-h);}   /* .paper 와 같은 크기 */
+.paper::-webkit-scrollbar{display:none;}   /* 페이지 안 스크롤은 되지만 막대는 숨김 */
 .cover-book{position:absolute;inset:0;container-type:inline-size;transform-origin:left center;
   transition:transform 0.85s cubic-bezier(0.6,0.05,0.3,1);}
 .cover-screen.open .cover-book{transform:rotateY(-110deg);}
@@ -218,6 +223,7 @@ body.cover-on{overflow:hidden;}
 .cover-tabs{position:absolute;z-index:1;top:13%;right:-42px;display:flex;flex-direction:column;gap:8px;}
 
 @media(max-width:500px){
+  :root{--book-w:100%;--book-h:calc(100vh - 52px);}   /* 휴대폰은 화면에 꽉 차게 */
   .container{padding:16px 40px 30px 20px;}
   .paper{padding:20px 14px 26px 38px;border-radius:2px 8px 8px 2px;}
   .paper::before{left:27px;}
@@ -805,6 +811,7 @@ function showTab(name){
   currentTab=name;
   document.getElementById('page-num').textContent=(PAGE_ORDER.indexOf(name)+1)+' / '+PAGE_ORDER.length;
   window.scrollTo(0,0);
+  document.querySelector('.book .paper').scrollTop=0;
 }
 
 // ===== 종이 넘기기 효과 (촤라락) =====
@@ -945,6 +952,7 @@ function openBook(tab){
 function closeBook(){
   if(flipping||isCoverShown()) return;
   window.scrollTo(0,0);
+  document.querySelector('.book .paper').scrollTop=0;
   // 속지들이 뒤로 촤라락 넘어와 쌓인 다음 표지가 덮임. 표지가 다 덮일 때까지 넘어온 종이는 그대로 둠
   riffle(-1,{done:function(release){
     document.getElementById('cover').classList.remove('open');
@@ -1211,6 +1219,8 @@ async function runPullRefresh(){
   setPull(ok?'done':'fail');
   setTimeout(function(){setPull('');},900);
 }
+// 페이지 안 스크롤(.paper)과 창 스크롤이 모두 맨 위일 때만 "당겨서 새로고침"
+function atTop(){var p=document.querySelector('.paper');return window.scrollY<=0&&(!p||p.scrollTop<=0);}
 // 다이어리 본문이 열려 있고(표지·로그인 화면 아님) 짝꿍 다이어리에 연결돼 있을 때만
 function canPullRefresh(){
   return !!(me&&couple)&&!isCoverShown()&&!isGateShown()&&!refreshing&&!flipping;
@@ -1219,18 +1229,18 @@ function canPullRefresh(){
 // 휴대폰·태블릿: 맨 위에서 아래로 끌어당겼다 놓기
 var pullStartY=null,pullDist=0;
 document.addEventListener('touchstart',function(e){
-  if(!canPullRefresh()||window.scrollY>0||e.touches.length!==1){pullStartY=null;return;}
+  if(!canPullRefresh()||!atTop()||e.touches.length!==1){pullStartY=null;return;}
   pullStartY=e.touches[0].clientY;pullDist=0;
 },{passive:true});
 document.addEventListener('touchmove',function(e){
   if(pullStartY===null) return;
   pullDist=e.touches[0].clientY-pullStartY;
-  if(pullDist<=0||window.scrollY>0){setPull('');return;}
+  if(pullDist<=0||!atTop()){setPull('');return;}
   setPull(pullDist>=PULL_TRIGGER?'ready':'pulling',pullDist);
 },{passive:true});
 document.addEventListener('touchend',function(){
   if(pullStartY===null) return;
-  var go=pullDist>=PULL_TRIGGER&&window.scrollY<=0;
+  var go=pullDist>=PULL_TRIGGER&&atTop();
   pullStartY=null;pullDist=0;
   if(go) runPullRefresh(); else setPull('');
 });
@@ -1238,7 +1248,7 @@ document.addEventListener('touchend',function(){
 // 컴퓨터: 맨 위에서 마우스 휠을 한 번 더 위로 굴리기
 var wheelPull=0,wheelTimer=null;
 window.addEventListener('wheel',function(e){
-  if(!canPullRefresh()||window.scrollY>0||e.deltaY>=0){wheelPull=0;return;}
+  if(!canPullRefresh()||!atTop()||e.deltaY>=0){wheelPull=0;return;}
   wheelPull+=-e.deltaY;
   clearTimeout(wheelTimer);
   wheelTimer=setTimeout(function(){wheelPull=0;if(!refreshing)setPull('');},400);
