@@ -153,14 +153,16 @@ body{background-color:var(--desk);color:var(--ink);font-family:var(--body);font-
 
 /* ===== 표지 ===== */
 body.cover-on{overflow:hidden;}
-.cover-screen{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:32px 60px 32px 48px;perspective:1800px;cursor:pointer;
+/* 표지는 펼쳐진 종이(.paper)와 똑같은 자리·크기에 놓임: 같은 .container/.book 배치를 그대로 씀 */
+.cover-screen{position:fixed;inset:0;z-index:9000;overflow:hidden;padding-top:env(safe-area-inset-top);cursor:pointer;
   background-color:var(--desk);
   background-image:var(--grain-desk),
     radial-gradient(110% 78% at 50% 16%,rgba(255,252,243,.6),rgba(255,252,243,0) 64%),
     linear-gradient(180deg,#EFE5D2,#E6D9C2 60%,#DCCDB4);
   transition:opacity 0.35s ease,visibility 0s 0s;}
 .cover-screen.open{opacity:0;visibility:hidden;pointer-events:none;transition:opacity 0.45s ease 0.45s,visibility 0s 0.9s;}
-.cover-wrap{position:relative;width:min(408px,100%,calc((100vh - 120px)*0.75));aspect-ratio:3/4;}
+.cover-screen .book{perspective:4200px;perspective-origin:0 50%;}   /* 스프링 쪽을 축으로, 멀리서 보듯 */
+.cover-wrap{position:relative;width:100%;height:calc(100vh - 70px);}   /* .paper 의 min-height 와 같음 */
 .cover-book{position:absolute;inset:0;container-type:inline-size;transform-origin:left center;
   transition:transform 0.85s cubic-bezier(0.6,0.05,0.3,1);}
 .cover-screen.open .cover-book{transform:rotateY(-110deg);}
@@ -198,19 +200,19 @@ body.cover-on{overflow:hidden;}
   box-shadow:0 2px 5px -2px rgba(90,60,50,.3);}
 .cover-title-wrap::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:7px;
   background:radial-gradient(circle at 5px 0,#F9F1DD 3.4px,rgba(0,0,0,0) 4px) 0 0/10px 7px repeat-x;}
-.cover-title{font-family:var(--hand);font-weight:700;font-size:8.6cqw;line-height:1.18;color:#4B332E;word-break:keep-all;letter-spacing:.01em;white-space:nowrap;}
+.cover-title{font-family:var(--hand);font-weight:700;font-size:min(8.6cqw,58px);line-height:1.18;color:#4B332E;word-break:keep-all;letter-spacing:.01em;white-space:nowrap;}
 .cover-line{height:2px;width:62%;margin:5% auto 0;border-radius:2px;background:rgba(75,51,46,.3);transform:rotate(-.6deg);}   /* 손으로 그은 밑줄 두 개 */
 .cover-line.thin{height:1px;width:46%;margin-top:4px;background:rgba(75,51,46,.22);transform:rotate(.8deg);}
 /* 띠지: 크라프트 종이 띠가 표지를 두름 */
 .cover-band{position:absolute;z-index:2;left:0;right:0;top:62%;height:11%;display:flex;align-items:center;justify-content:center;padding:0 20% 0 12%;
   background:var(--grain-paper),linear-gradient(180deg,#F8EFDC,#EEE2C8);
   box-shadow:0 4px 9px -4px rgba(60,40,30,.55),inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(94,74,54,.16);
-  font-family:var(--hand);font-weight:700;font-size:4.6cqw;letter-spacing:.24em;color:var(--rose-deep);text-shadow:0 1px 0 rgba(255,255,255,.75);}
+  font-family:var(--hand);font-weight:700;font-size:min(4.6cqw,27px);letter-spacing:.24em;color:var(--rose-deep);text-shadow:0 1px 0 rgba(255,255,255,.75);}
 /* 고무줄: 세로로 짜인 결 */
-.cover-elastic{position:absolute;z-index:4;top:-3px;bottom:-3px;right:9.5%;width:3.4cqw;border-radius:2px;
+.cover-elastic{position:absolute;z-index:4;top:-3px;bottom:-3px;right:9.5%;width:min(3.4cqw,22px);border-radius:2px;
   background:repeating-linear-gradient(180deg,rgba(255,255,255,.08) 0 4px,rgba(0,0,0,0) 4px 8px),linear-gradient(90deg,#6B4341,#835552 45%,#5B3A38 72%,#472A28);
   box-shadow:-2px 0 6px rgba(58,30,30,.3),2px 0 4px rgba(58,30,30,.18),inset 0 0 0 1px rgba(255,255,255,.07);}
-.cover-hint{position:absolute;left:12%;right:20%;bottom:7%;text-align:center;font-family:var(--hand);font-size:max(14px,4.1cqw);color:rgba(255,246,236,.88);}
+.cover-hint{position:absolute;left:12%;right:20%;bottom:7%;text-align:center;font-family:var(--hand);font-size:clamp(14px,4.1cqw,22px);color:rgba(255,246,236,.88);}
 .cover-spiral{position:absolute;z-index:3;left:-20px;top:4%;bottom:4%;width:44px;background:var(--ring-lg) repeat-y 0 0/44px 26px;
   filter:drop-shadow(1px 1px 1px rgba(60,45,32,.2));}
 .cover-tabs{position:absolute;z-index:1;top:13%;right:-42px;display:flex;flex-direction:column;gap:8px;}
@@ -235,7 +237,6 @@ body.cover-on{overflow:hidden;}
   .gate-card::before{left:27px;}
   .gate-title{font-size:27px;}
   .gate-tabs{gap:14px;}
-  .cover-screen{padding:24px 48px 24px 34px;}
 }
 @media(max-width:359px){
   .container{padding:14px 38px 28px 18px;}
@@ -383,6 +384,7 @@ html,body{overscroll-behavior-y:contain;}
 
 <!-- 표지 -->
 <div id="cover" class="cover-screen" onclick="if(event.clientX>=window.innerWidth/2)openBook()">
+ <div class="container"><div class="book">
   <div class="cover-wrap">
     <div class="cover-edges bottom"></div>
     <div class="cover-edges right"></div>
@@ -403,6 +405,7 @@ html,body{overscroll-behavior-y:contain;}
       </div>
     </div>
   </div>
+ </div></div>
 </div>
 
 <div class="container">
