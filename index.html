@@ -220,6 +220,89 @@ body.cover-on{overflow:hidden;}
 .pages{display:grid;flex:1;}
 .page{grid-area:1/1;min-width:0;visibility:hidden;}
 .page.active{visibility:visible;}
+/* ===== 캘린더 (페이지 위에 따로 얹은 종이 한 장) ===== */
+.calendar{position:relative;margin:6px 8px 12px 4px;padding:20px 18px 18px;border-radius:7px;
+  background:var(--grain-paper),linear-gradient(180deg,#FFFDF8 0%,#FCF7EA 60%,#F9F2E1 100%);
+  border:1px solid rgba(94,74,54,.15);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 0 0 1px rgba(255,255,255,.35) inset,0 12px 24px -18px rgba(70,52,36,.65);}
+.cal-head{position:relative;text-align:center;padding:6px 0 16px;}
+.cal-year{position:absolute;left:0;top:0;font-family:var(--hand);font-size:13px;letter-spacing:.16em;color:var(--ink2);opacity:.5;}
+.cal-title-row{display:flex;align-items:center;justify-content:center;gap:10px;}
+.cal-month{border:none;background:none;padding:0 6px;font-family:var(--hand);font-size:40px;font-weight:700;line-height:1;color:var(--ink);letter-spacing:.02em;border-radius:8px;}
+.cal-month:hover{background:rgba(246,201,210,.35);}
+.cal-nav{width:34px;height:34px;border:1px dashed rgba(94,74,54,.3);border-radius:50%;background:rgba(255,253,245,.6);
+  font-family:var(--hand);font-size:24px;line-height:1;color:var(--ink2);display:flex;align-items:center;justify-content:center;padding:0 0 3px;transition:all .18s;}
+.cal-nav:hover{color:var(--rose-deep);border-color:rgba(191,110,126,.55);background:#FFFCF3;}
+.cal-nav:disabled{opacity:.25;cursor:default;}
+.cal-month-en{display:block;margin-top:5px;font-family:var(--hand);font-size:12px;letter-spacing:.32em;color:var(--rose-deep);opacity:.75;padding-left:.32em;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;}
+.cal-dow{font-family:var(--hand);font-size:14px;text-align:center;color:var(--ink2);padding:0 0 6px;letter-spacing:.06em;}
+.cal-dow.sun{color:var(--rose-deep);}
+.cal-dow.sat{color:var(--blue);}
+.cal-day{position:relative;min-width:0;aspect-ratio:1/.82;border-radius:7px;padding:6px 7px;font-family:var(--hand);font-size:16px;line-height:1;color:var(--ink);
+  background:rgba(255,255,255,.34);border:1px solid rgba(94,74,54,.11);overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:box-shadow .18s,transform .18s;}
+.cal-day:hover{box-shadow:0 4px 10px -6px rgba(70,52,36,.5);transform:translateY(-1px);}
+.cal-day.sun{color:var(--rose-deep);}
+.cal-day.sat{color:var(--blue);}
+.cal-day.other{opacity:.3;}
+.cal-num{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;margin:-4px -5px;border-radius:50%;}
+.cal-day.today .cal-num{color:var(--rose-deep);font-weight:700;border:1.8px solid var(--rose);
+  border-radius:52% 46% 50% 48%/46% 54% 46% 54%;transform:rotate(-5deg);}   /* 손으로 그린 동그라미 */
+.cal-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.cal-day.has-photo .cal-num{background:rgba(255,253,245,.88);box-shadow:0 0 0 1px rgba(94,74,54,.08);}
+.cal-count{position:absolute;right:4px;bottom:4px;z-index:1;font-size:10.5px;font-family:var(--hand);color:var(--ink2);
+  background:rgba(255,253,245,.9);border-radius:999px;padding:1px 6px;}
+
+/* ===== 날짜 하나 (사진 보기 · 붙이기) ===== */
+.day-sheet{position:fixed;inset:0;z-index:7000;display:flex;align-items:center;justify-content:center;padding:20px 16px;
+  background:rgba(46,41,37,.38);overflow-y:auto;}
+.day-card{position:relative;width:min(480px,100%);max-height:calc(100vh - 40px);overflow-y:auto;margin:auto;border-radius:8px;padding:26px 22px 22px;
+  background:var(--grain-paper),var(--rule-soft),linear-gradient(180deg,#FFFCF4,#FBF4E4);
+  box-shadow:0 0 0 1px rgba(94,74,54,.12),0 30px 60px -30px rgba(40,25,15,.7);}
+.day-card::before{content:'';position:absolute;z-index:2;top:-8px;left:50%;width:84px;height:20px;margin-left:-42px;border-radius:1px;transform:rotate(-2.5deg);pointer-events:none;
+  background:repeating-linear-gradient(112deg,rgba(245,199,209,.92) 0 7px,rgba(255,243,245,.94) 7px 14px);box-shadow:0 3px 6px -2px rgba(90,64,56,.22);}
+.day-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border:none;border-radius:50%;background:rgba(255,253,245,.7);color:var(--ink2);font-size:15px;}
+.day-close:hover{color:var(--rose-deep);background:rgba(246,201,210,.45);}
+.day-title{font-family:var(--hand);font-size:26px;font-weight:700;color:var(--ink);line-height:1.2;padding-right:36px;}
+.day-sub{font-family:var(--hand);font-size:14px;color:var(--ink3);margin:3px 0 14px;}
+.day-photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px;margin-bottom:14px;}
+.day-photos:empty{display:none;}
+.day-photo{position:relative;margin:0;padding:6px 6px 20px;background:#FFFDF7;border-radius:2px;
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 8px 16px -10px rgba(70,52,36,.6),0 0 0 1px rgba(94,74,54,.08);}
+.day-photo.tilt-l{transform:rotate(-1.6deg);}
+.day-photo.tilt-r{transform:rotate(1.4deg);}
+.day-photo img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:1px;cursor:zoom-in;background:var(--bg3);}
+.day-photo figcaption{position:absolute;left:0;right:0;bottom:3px;text-align:center;font-family:var(--hand);font-size:12px;color:var(--ink2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 6px;}
+.day-del{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border:none;border-radius:50%;background:var(--rose-deep);color:#FFF7F0;font-size:11px;line-height:1;
+  box-shadow:0 2px 4px rgba(60,30,30,.3);}
+.day-add{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px;border:1.4px dashed rgba(94,74,54,.32);border-radius:9px;
+  background:rgba(255,255,255,.4);font-family:var(--hand);font-size:17px;color:var(--ink2);cursor:pointer;transition:all .18s;-webkit-tap-highlight-color:transparent;}
+.day-add:hover{background:#FFFCF3;color:var(--rose-deep);border-color:rgba(191,110,126,.5);}
+.day-add:has(input:disabled){opacity:.6;cursor:progress;}
+.day-msg{font-size:12.5px;color:var(--red);margin-top:10px;min-height:1em;line-height:1.5;}
+.day-msg.ok{color:var(--green);}
+.photo-view{position:fixed;inset:0;z-index:7500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;
+  background:rgba(30,24,20,.9);cursor:zoom-out;}
+.photo-view img{max-width:100%;max-height:calc(100vh - 80px);border-radius:3px;box-shadow:0 20px 50px rgba(0,0,0,.5);background:#111;}
+.photo-view-cap{font-family:var(--hand);font-size:14px;color:rgba(255,246,236,.85);}
+@media(max-width:500px){
+  .calendar{margin:2px 2px 8px 0;padding:14px 9px 10px;border-radius:6px;}
+  .cal-head{padding:4px 0 12px;}
+  .cal-year{font-size:11.5px;}
+  .cal-month{font-size:32px;}
+  .cal-nav{width:30px;height:30px;font-size:20px;}
+  .cal-month-en{font-size:10.5px;margin-top:4px;}
+  .cal-grid{gap:3px;}
+  .cal-dow{font-size:12.5px;padding-bottom:4px;}
+  .cal-day{aspect-ratio:1/1.15;padding:4px 4px;font-size:13.5px;border-radius:5px;}
+  .cal-num{min-width:20px;height:20px;margin:-3px -3px;}
+  .cal-count{font-size:9.5px;padding:0 4px;right:2px;bottom:2px;}
+  .day-sheet{padding:12px 10px;}
+  .day-card{padding:22px 16px 18px;}
+  .day-title{font-size:22px;}
+  .day-photos{gap:10px 8px;}
+}
 .flip-stage{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;}
 .flip-sheet{position:absolute;transform-origin:left center;transform-style:preserve-3d;border-radius:2px 10px 10px 2px;will-change:transform,opacity;}
 .flip-face{position:absolute;inset:0;border-radius:inherit;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;}
@@ -290,6 +373,21 @@ html,body{overscroll-behavior-y:contain;}
   <div class="pages">
   <!-- 캘린더 -->
   <div id="tab-calendar" class="page active">
+    <section class="calendar" aria-label="캘린더">
+      <div class="cal-head">
+        <span class="cal-year" id="cal-year"></span>
+        <div class="cal-title-row">
+          <button type="button" class="cal-nav" id="cal-prev" onclick="calMove(-1)" aria-label="지난달">‹</button>
+          <button type="button" class="cal-month" id="cal-month" onclick="calToday()" title="오늘이 있는 달로"></button>
+          <button type="button" class="cal-nav" id="cal-next" onclick="calMove(1)" aria-label="다음달">›</button>
+        </div>
+        <span class="cal-month-en" id="cal-month-en"></span>
+      </div>
+      <div class="cal-grid" id="cal-grid">
+        <div class="cal-dow sun">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div><div class="cal-dow">수</div>
+        <div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow sat">토</div>
+      </div>
+    </section>
   </div>
 
   </div>
@@ -297,6 +395,26 @@ html,body{overscroll-behavior-y:contain;}
   <button type="button" class="gate-link account-delete" id="btn-delete" onclick="deleteAccount()" hidden>탈퇴하기</button>
   </div>
  </div>
+</div>
+
+<!-- 날짜 하나: 그날 사진 보기 · 붙이기 -->
+<div id="day-sheet" class="day-sheet" hidden>
+  <div class="day-card" role="dialog" aria-labelledby="day-title">
+    <button type="button" class="day-close" onclick="closeDay()" aria-label="닫기">✕</button>
+    <div class="day-title" id="day-title"></div>
+    <div class="day-sub" id="day-sub"></div>
+    <div class="day-photos" id="day-photos"></div>
+    <label class="day-add" id="day-add">
+      <input type="file" id="day-file" accept="image/*" multiple hidden>
+      <span id="day-add-text">+ 사진 붙이기</span>
+    </label>
+    <div class="day-msg" id="day-msg"></div>
+  </div>
+</div>
+<!-- 사진 크게 보기 -->
+<div id="photo-view" class="photo-view" hidden>
+  <img src="" alt="">
+  <div class="photo-view-cap"></div>
 </div>
 
 <div id="pull-refresh" class="pull-refresh" aria-live="polite"><span class="pull-icon">↓</span><span class="pull-text">당겨서 새로고침</span></div>
@@ -369,6 +487,232 @@ var now=new Date();
 document.getElementById('cover-year').textContent=now.getFullYear()+' DIARY';
 document.getElementById('today-date').textContent=now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일';
 
+// ===== 캘린더 =====
+var CAL_MIN=2000,CAL_MAX=2040;   // 볼 수 있는 연도 범위
+var CAL_MONTHS_EN=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+var CAL_DOW_KO=['일','월','화','수','목','금','토'];
+var calYear,calMonth;
+function calKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function calParse(key){var p=key.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+// 한 달 달력을 그림. 앞뒤 달의 날짜는 흐리게 채워 넣어 7칸 줄을 맞춤
+function buildCalendar(y,m){
+  var d=new Date(y,m,1);
+  y=Math.min(CAL_MAX,Math.max(CAL_MIN,d.getFullYear()));m=d.getMonth();
+  if(d.getFullYear()!==y) m=(y===CAL_MIN?0:11);
+  calYear=y;calMonth=m;
+  document.getElementById('cal-year').textContent=y;
+  document.getElementById('cal-month').textContent=(m+1)+'월';
+  document.getElementById('cal-month-en').textContent=CAL_MONTHS_EN[m];
+  document.getElementById('cal-prev').disabled=(y===CAL_MIN&&m===0);
+  document.getElementById('cal-next').disabled=(y===CAL_MAX&&m===11);
+  var grid=document.getElementById('cal-grid');
+  grid.querySelectorAll('.cal-day').forEach(function(c){c.remove();});
+  var startDow=new Date(y,m,1).getDay();
+  var daysIn=new Date(y,m+1,0).getDate();
+  var todayKey=calKey(new Date());
+  var total=Math.ceil((startDow+daysIn)/7)*7;
+  for(var i=0;i<total;i++){
+    (function(){
+      var day=new Date(y,m,i-startDow+1);          // 1일 앞뒤로 넘치면 Date 가 알아서 앞뒤 달로 계산
+      var other=day.getMonth()!==m,dow=i%7,key=calKey(day);
+      var cell=document.createElement('div');
+      cell.className='cal-day'+(other?' other':'')+(dow===0?' sun':dow===6?' sat':'');
+      cell.dataset.date=key;
+      if(key===todayKey) cell.classList.add('today');
+      var num=document.createElement('span');
+      num.className='cal-num';num.textContent=day.getDate();
+      cell.appendChild(num);
+      cell.onclick=function(){
+        if(other){calGo(day.getFullYear(),day.getMonth());}   // 흐린 날짜를 누르면 그 달로 이동
+        else openDay(key);
+      };
+      grid.appendChild(cell);
+    })();
+  }
+  renderMonthPhotos();
+}
+function calGo(y,m){buildCalendar(y,m);loadMonthPhotos().catch(function(e){console.error('photos:',e);});}
+function calMove(delta){calGo(calYear,calMonth+delta);}
+function calToday(){var n=new Date();calGo(n.getFullYear(),n.getMonth());}
+
+// ===== 사진 (날짜 칸에 붙이기) =====
+// 파일은 Storage 'photos' 버킷의 {커플id}/... 에 올리고, 정보는 photos 표에 저장.
+// 버킷이 비공개라 보여줄 때는 1시간짜리 서명 주소를 받아서 씀.
+var monthPhotos={};     // {'YYYY-MM-DD': [{id,storage_path,uploader_id,url}, ...]} 지금 보는 달
+var photoUrlCache={};   // storage_path → {url, exp}
+var openDayKey=null;
+
+async function signPaths(paths){
+  var need=paths.filter(function(p){var c=photoUrlCache[p];return !(c&&c.exp>Date.now()+60000);});
+  if(!need.length) return;
+  var r=await sb.storage.from('photos').createSignedUrls(need,3600);
+  if(r.error) throw r.error;
+  (r.data||[]).forEach(function(x){if(x.signedUrl&&x.path) photoUrlCache[x.path]={url:x.signedUrl,exp:Date.now()+3600e3};});
+}
+async function loadMonthPhotos(){
+  monthPhotos={};
+  if(!sb||!me||!couple){renderMonthPhotos();if(openDayKey)renderDaySheet();return;}
+  var first=calKey(new Date(calYear,calMonth,1)),last=calKey(new Date(calYear,calMonth+1,0));
+  var r=await sb.from('photos').select('id,storage_path,taken_on,uploader_id,caption')
+    .eq('couple_id',couple.id).gte('taken_on',first).lte('taken_on',last).order('created_at');
+  if(r.error) throw r.error;
+  await signPaths(r.data.map(function(p){return p.storage_path;}));
+  r.data.forEach(function(p){
+    p.url=(photoUrlCache[p.storage_path]||{}).url;
+    (monthPhotos[p.taken_on]=monthPhotos[p.taken_on]||[]).push(p);
+  });
+  renderMonthPhotos();
+  if(openDayKey) renderDaySheet();
+}
+// 달력 칸 안에 그날 첫 사진을 깔고, 여러 장이면 장수를 표시
+function renderMonthPhotos(){
+  document.querySelectorAll('#cal-grid .cal-day').forEach(function(cell){
+    cell.querySelectorAll('.cal-photo,.cal-count').forEach(function(x){x.remove();});
+    var list=cell.classList.contains('other')?null:monthPhotos[cell.dataset.date];
+    cell.classList.toggle('has-photo',!!(list&&list.length));
+    if(!list||!list.length) return;
+    if(list[0].url){
+      var img=document.createElement('img');
+      img.className='cal-photo';img.src=list[0].url;img.alt='';img.loading='lazy';
+      cell.insertBefore(img,cell.firstChild);
+    }
+    if(list.length>1){
+      var n=document.createElement('span');
+      n.className='cal-count';n.textContent=list.length+'장';
+      cell.appendChild(n);
+    }
+  });
+}
+
+function nickOf(uid){
+  if(me&&uid===me.id) return (myProfile&&myProfile.nickname)||'나';
+  if(partner&&uid===partner.id) return partner.nickname||'짝꿍';
+  return '짝꿍';
+}
+function openDay(key){
+  openDayKey=key;
+  renderDaySheet();
+  document.getElementById('day-sheet').hidden=false;
+}
+function closeDay(){
+  openDayKey=null;
+  document.getElementById('day-sheet').hidden=true;
+  setDayMsg('');
+}
+function setDayMsg(text,ok){var el=document.getElementById('day-msg');el.textContent=text||'';el.className='day-msg'+(ok?' ok':'');}
+function renderDaySheet(){
+  if(!openDayKey) return;
+  var d=calParse(openDayKey);
+  document.getElementById('day-title').textContent=d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+CAL_DOW_KO[d.getDay()]+')';
+  var list=monthPhotos[openDayKey]||[];
+  document.getElementById('day-sub').textContent=list.length?'사진 '+list.length+'장':'아직 붙인 사진이 없어요';
+  var wrap=document.getElementById('day-photos');
+  wrap.innerHTML='';
+  list.forEach(function(p,i){
+    var fig=document.createElement('figure');
+    fig.className='day-photo'+(i%2?' tilt-r':' tilt-l');
+    var img=document.createElement('img');
+    img.src=p.url||'';img.alt='';
+    img.onclick=function(){openPhotoView(p);};
+    fig.appendChild(img);
+    var cap=document.createElement('figcaption');
+    cap.textContent=nickOf(p.uploader_id);
+    fig.appendChild(cap);
+    if(me&&p.uploader_id===me.id){
+      var del=document.createElement('button');
+      del.type='button';del.className='day-del';del.title='이 사진 지우기';del.textContent='✕';
+      del.onclick=function(e){e.stopPropagation();deletePhoto(p);};
+      fig.appendChild(del);
+    }
+    wrap.appendChild(fig);
+  });
+  var add=document.getElementById('day-add');
+  add.hidden=!(me&&couple);
+}
+document.getElementById('day-sheet').addEventListener('click',function(e){if(e.target===this) closeDay();});
+
+// --- 올리기 ---
+var MAX_EDGE=1600;   // 긴 변을 이 크기로 줄여서 올림 (용량 절약)
+function loadImage(file){
+  return new Promise(function(res,rej){
+    var url=URL.createObjectURL(file),img=new Image();
+    img.onload=function(){URL.revokeObjectURL(url);res(img);};
+    img.onerror=function(){URL.revokeObjectURL(url);rej(new Error('decode'));};
+    img.src=url;
+  });
+}
+// 브라우저가 읽을 수 있는 사진은 JPEG 로 줄여서 돌려주고, 못 읽는 형식(일부 HEIC 등)은 null
+async function compressImage(file){
+  var img;
+  try{img=await loadImage(file);}catch(e){return null;}
+  var w=img.naturalWidth,h=img.naturalHeight;
+  if(!w||!h) return null;
+  var s=Math.min(1,MAX_EDGE/Math.max(w,h));
+  var c=document.createElement('canvas');
+  c.width=Math.round(w*s);c.height=Math.round(h*s);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+  return await new Promise(function(r){c.toBlob(r,'image/jpeg',0.82);});
+}
+var uploading=false;
+async function uploadPhotos(key,files){
+  if(!sb||!me||!couple||uploading) return;
+  uploading=true;
+  var input=document.getElementById('day-file'),label=document.getElementById('day-add-text');
+  input.disabled=true;
+  var ok=0,fail=0;
+  for(var i=0;i<files.length;i++){
+    label.textContent='올리는 중… ('+(i+1)+'/'+files.length+')';
+    try{
+      var file=files[i],blob=await compressImage(file),type='image/jpeg',ext='jpg';
+      if(!blob){
+        if(file.size>10*1024*1024) throw new Error('too-big');
+        blob=file;type=file.type||'image/jpeg';ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+      }
+      var path=couple.id+'/'+key+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+'.'+ext;
+      var up=await sb.storage.from('photos').upload(path,blob,{contentType:type,upsert:false});
+      if(up.error) throw up.error;
+      var ins=await sb.from('photos').insert({couple_id:couple.id,uploader_id:me.id,storage_path:path,taken_on:key});
+      if(ins.error){await sb.storage.from('photos').remove([path]);throw ins.error;}
+      ok++;
+    }catch(err){console.error('upload:',err);fail++;}
+  }
+  label.textContent='+ 사진 붙이기';
+  input.disabled=false;uploading=false;
+  try{await loadMonthPhotos();}catch(e){console.error('photos:',e);}
+  if(fail) setDayMsg(ok+'장 붙였고 '+fail+'장은 올리지 못했어요. (10MB 이하 사진 파일만 돼요)');
+  else setDayMsg(ok+'장 붙였어요 ♥',true);
+}
+document.getElementById('day-file').addEventListener('change',function(){
+  var files=Array.prototype.slice.call(this.files||[]);
+  this.value='';
+  if(files.length&&openDayKey) uploadPhotos(openDayKey,files);
+});
+async function deletePhoto(p){
+  if(!sb||!me) return;
+  if(!confirm('이 사진을 지울까?\n지우면 되돌릴 수 없어.')) return;
+  var d=await sb.from('photos').delete().eq('id',p.id);
+  if(d.error){setDayMsg('지우지 못했어요. 다시 해주세요.');return;}
+  var rm=await sb.storage.from('photos').remove([p.storage_path]);
+  if(rm.error) console.error('remove file:',rm.error);
+  delete photoUrlCache[p.storage_path];
+  try{await loadMonthPhotos();}catch(e){console.error('photos:',e);}
+  setDayMsg('지웠어요.',true);
+}
+
+// --- 크게 보기 ---
+function openPhotoView(p){
+  if(!p.url) return;
+  var v=document.getElementById('photo-view');
+  v.querySelector('img').src=p.url;
+  v.querySelector('.photo-view-cap').textContent=nickOf(p.uploader_id)+' · '+openDayKey;
+  v.hidden=false;
+}
+function closePhotoView(){var v=document.getElementById('photo-view');v.hidden=true;v.querySelector('img').src='';}
+document.getElementById('photo-view').addEventListener('click',closePhotoView);
+
+// 처음엔 오늘이 있는 달을 보여줌 (사진은 로그인·커플 확인 뒤에 불러옴)
+buildCalendar(new Date().getFullYear(),new Date().getMonth());
+
 // ===== 탭 =====
 var PAGE_ORDER=['calendar'];
 var currentTab='calendar';
@@ -389,53 +733,82 @@ function showTab(name){
   window.scrollTo(0,0);
 }
 
-// ===== 종이 넘기기 효과 =====
-// 앞으로: 빈 종이가 페이지를 덮은 뒤 왼쪽(스프링 쪽)으로 넘어가며 새 페이지를 보여줌
-// 뒤로: 넘어갔던 종이가 스프링 쪽에서 되돌아와 덮은 뒤 사라지며 이전 페이지를 보여줌
+// ===== 종이 넘기기 효과 (촤라락) =====
+// 앞으로: 종이 여러 장이 페이지를 덮은 뒤 위에서부터 한 장씩 빠르게 스프링 쪽으로 넘어가며 새 화면을 보여줌
+// 뒤로: 넘어갔던 종이들이 스프링 쪽에서 차례로 되돌아와 쌓인 뒤 사라지며 이전 화면을 보여줌
+// mid(): 종이에 가려져 있는 동안 실제 화면을 바꾸는 함수 (페이지 바꾸기, 로그인 화면 닫기 등)
 var flipping=false;
-function flipTo(name){
-  if(flipping||name===currentTab) return;
-  var dir=PAGE_ORDER.indexOf(name)>PAGE_ORDER.indexOf(currentTab)?1:-1;
-  if(!Element.prototype.animate||window.matchMedia('(prefers-reduced-motion: reduce)').matches){showTab(name);return;}
+var RIFFLE_SHEETS=6;     // 한 번에 넘어가는 종이 장수
+var RIFFLE_GAP=62;       // 다음 장이 넘어가기 시작할 때까지 (ms)
+var RIFFLE_TURN=380;     // 한 장이 넘어가는 시간 (ms)
+function canAnimate(){return !!Element.prototype.animate&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches;}
+function riffle(dir,mid){
+  if(flipping||!canAnimate()){mid();return;}
   flipping=true;
 
   var stage=document.createElement('div');
   stage.className='flip-stage';
-  var sheet=document.createElement('div');
-  sheet.className='flip-sheet';
-  sheet.innerHTML='<div class="flip-face front"><div class="flip-shade"></div></div><div class="flip-face back"><div class="flip-shade"></div></div>';
-  stage.appendChild(sheet);
+  var sheets=[];
+  for(var i=0;i<RIFFLE_SHEETS;i++){
+    var s=document.createElement('div');
+    s.className='flip-sheet';
+    s.innerHTML='<div class="flip-face front"><div class="flip-shade"></div></div><div class="flip-face back"><div class="flip-shade"></div></div>';
+    stage.appendChild(s);sheets.push(s);   // 뒤에 붙을수록 위에 쌓임
+  }
   document.body.appendChild(stage);
-  var shades=sheet.querySelectorAll('.flip-shade');
 
   function place(){
     var r=document.querySelector('.paper').getBoundingClientRect();
     var top=Math.max(r.top,0),bottom=Math.min(r.bottom,window.innerHeight);
-    sheet.style.left=r.left+'px';sheet.style.top=top+'px';
-    sheet.style.width=r.width+'px';sheet.style.height=(bottom-top)+'px';
+    sheets.forEach(function(s,i){
+      var depth=RIFFLE_SHEETS-1-i;   // 아래 장일수록 살짝 밀려 있어 여러 장처럼 보임
+      s.style.left=(r.left+depth*0.6)+'px';s.style.top=(top+depth*0.5)+'px';
+      s.style.width=r.width+'px';s.style.height=(bottom-top)+'px';
+    });
     stage.style.perspective=Math.round(r.width*2.4)+'px';
     stage.style.perspectiveOrigin=r.left+'px 50%';
   }
-  function shade(duration){
-    shades.forEach(function(s){s.animate([{opacity:0},{opacity:1,offset:0.5},{opacity:0}],{duration:duration,fill:'forwards'});});
+  function shade(s,duration,delay){
+    s.querySelectorAll('.flip-shade').forEach(function(el){el.animate([{opacity:0},{opacity:1,offset:0.5},{opacity:0}],{duration:duration,delay:delay||0,fill:'forwards'});});
   }
   function finish(){stage.remove();flipping=false;}
-  var turnEase='cubic-bezier(0.45,0.05,0.35,1)';
+  // onfinish 가 늦게 오는 환경(화면이 가려지거나 절전 중)에서도 제때 다음 단계로 넘어가도록 타이머와 둘 중 먼저 오는 쪽을 씀
+  function whenDone(anim,ms,fn){var done=false;function go(){if(done)return;done=true;fn();}anim.onfinish=go;setTimeout(go,ms+40);}
+  var turnEase='cubic-bezier(0.5,0.05,0.4,1)';
+  var riffleTotal=(RIFFLE_SHEETS-1)*RIFFLE_GAP+RIFFLE_TURN;
   place();
 
   if(dir>0){
-    sheet.animate([{opacity:0},{opacity:1}],{duration:170,easing:'ease-out',fill:'forwards'}).onfinish=function(){
-      showTab(name);place();
-      shade(700);
-      sheet.animate([{transform:'rotateY(0deg)',opacity:1},{opacity:1,offset:0.8},{transform:'rotateY(-180deg)',opacity:0}],{duration:700,easing:turnEase,fill:'forwards'}).onfinish=finish;
-    };
+    whenDone(stage.animate([{opacity:0},{opacity:1}],{duration:140,easing:'ease-out',fill:'forwards'}),140,function(){
+      mid();place();
+      var last=null;
+      for(var k=0;k<RIFFLE_SHEETS;k++){          // 맨 위 장부터 차례로
+        var s=sheets[RIFFLE_SHEETS-1-k],delay=k*RIFFLE_GAP;
+        shade(s,RIFFLE_TURN,delay);
+        last=s.animate([{transform:'rotateY(0deg)',opacity:1},{opacity:1,offset:0.85},{transform:'rotateY(-180deg)',opacity:0}],
+          {duration:RIFFLE_TURN,delay:delay,easing:turnEase,fill:'forwards'});
+      }
+      whenDone(last,riffleTotal,finish);
+    });
   } else {
-    shade(650);
-    sheet.animate([{transform:'rotateY(-180deg)',opacity:0},{opacity:1,offset:0.2},{transform:'rotateY(0deg)',opacity:1}],{duration:650,easing:turnEase,fill:'forwards'}).onfinish=function(){
-      showTab(name);place();
-      sheet.animate([{opacity:1},{opacity:0}],{duration:240,easing:'ease-in',fill:'forwards'}).onfinish=finish;
-    };
+    var lastBack=null;
+    sheets.forEach(function(s,k){                 // 맨 아래 장부터 차례로 돌아와 쌓임
+      var delay=k*RIFFLE_GAP;
+      s.style.transform='rotateY(-180deg)';s.style.opacity='0';
+      shade(s,RIFFLE_TURN,delay);
+      lastBack=s.animate([{transform:'rotateY(-180deg)',opacity:0},{opacity:1,offset:0.15},{transform:'rotateY(0deg)',opacity:1}],
+        {duration:RIFFLE_TURN,delay:delay,easing:turnEase,fill:'forwards'});
+    });
+    whenDone(lastBack,riffleTotal,function(){
+      mid();place();
+      whenDone(stage.animate([{opacity:1},{opacity:0}],{duration:220,easing:'ease-in',fill:'forwards'}),220,finish);
+    });
   }
+}
+function flipTo(name){
+  if(flipping||name===currentTab) return;
+  var dir=PAGE_ORDER.indexOf(name)>PAGE_ORDER.indexOf(currentTab)?1:-1;
+  riffle(dir,function(){showTab(name);});
 }
 
 // ===== 페이지 넘기기 (화면 왼쪽 = 이전, 오른쪽 = 다음) =====
@@ -452,10 +825,11 @@ function goPrev(){
   if(i>0) flipTo(PAGE_ORDER[i-1]);
   else closeBook();
 }
-var TAP_IGNORE='button,input,textarea,select,a,label,[onclick],.bookmark';
+var TAP_IGNORE='button,input,textarea,select,a,label,[onclick],.bookmark,.cal-grid,.day-sheet,.photo-view';
 function isGateShown(){return !document.getElementById('gate').hidden;}
+function isOverlayShown(){return !document.getElementById('day-sheet').hidden||!document.getElementById('photo-view').hidden;}
 document.addEventListener('click',function(e){
-  if(isCoverShown()||isGateShown()||e.target.closest('#cover')) return;
+  if(isCoverShown()||isGateShown()||isOverlayShown()||e.target.closest('#cover')) return;
   if(e.target.closest(TAP_IGNORE)) return;
   var sel=window.getSelection&&window.getSelection().toString();
   if(sel) return;
@@ -464,7 +838,8 @@ document.addEventListener('click',function(e){
 document.addEventListener('keydown',function(e){
   var tag=(e.target.tagName||'').toLowerCase();
   if(tag==='input'||tag==='textarea'||tag==='select') return;
-  if(isGateShown()) return;
+  if(e.key==='Escape'){if(!document.getElementById('photo-view').hidden) closePhotoView(); else if(!document.getElementById('day-sheet').hidden) closeDay();return;}
+  if(isGateShown()||isOverlayShown()) return;
   if(e.key==='ArrowRight') goNext();
   else if(e.key==='ArrowLeft') goPrev();
 });
@@ -516,8 +891,14 @@ function renderGate(){
     document.getElementById('invite-code').textContent=couple.invite_code;
     showGateSection('gate-wait');
   }
-  else {justCreated=false;showGateSection(null);}   // 짝꿍이 들어오면 코드는 무효화되고 바로 다이어리로
+  else {justCreated=false;enterDiary();}   // 짝꿍이 들어오면 코드는 무효화되고 바로 다이어리로
   renderCoupleHeader();
+}
+
+// 로그인·가입·연결을 마치고 다이어리로 들어갈 때는 종이가 촤라락 넘어가며 열림
+function enterDiary(){
+  if(isGateShown()&&!isCoverShown()) riffle(1,function(){showGateSection(null);});
+  else showGateSection(null);
 }
 
 function renderCoupleHeader(){
@@ -563,6 +944,7 @@ async function refreshSession(session){
   me=session?session.user:null;
   try{
     if(me) await loadCouple(); else {couple=null;partner=null;myProfile=null;}
+    await loadMonthPhotos();
     renderGate();
   }catch(err){
     document.getElementById('gate-error-msg').textContent='기록을 불러오지 못했어요. 잠시 후 새로고침해 주세요.';
@@ -698,6 +1080,7 @@ async function refreshFromServer(){
   refreshing=true;
   try{
     await loadCouple();
+    await loadMonthPhotos();
     renderGate();
     return true;
   }catch(err){
