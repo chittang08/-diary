@@ -392,9 +392,9 @@ body.cover-on{overflow:hidden;}
 .pola-item.mine{cursor:grab;}
 .pola-item.dragging{cursor:grabbing;z-index:5;box-shadow:0 18px 30px -14px rgba(70,52,36,.8),0 0 0 1px rgba(94,74,54,.14);}
 .pola-item.placing{z-index:6;outline:2px dashed rgba(191,110,126,.7);outline-offset:5px;}
-.pola-item.flying{opacity:0;pointer-events:none;}   /* 날아오기 전: 보이지 않음 */
-.pola-item.flying::before{opacity:0;}               /* 테이프는 붙은 다음에 올라옴 */
-.pola-item::before{content:'';position:absolute;top:-9px;left:50%;width:46%;height:16px;margin-left:-23%;transform:rotate(-3deg);border-radius:1px;opacity:.93;transition:opacity .35s ease .05s;
+.pola-item.flying{opacity:0;pointer-events:none;}   /* 나타나기 전: 보이지 않음 */
+.pola-item.flying::before{opacity:0;}               /* 테이프는 다 나타난 다음에 살며시 */
+.pola-item::before{content:'';position:absolute;top:-9px;left:50%;width:46%;height:16px;margin-left:-23%;transform:rotate(-3deg);border-radius:1px;opacity:.93;transition:opacity .5s ease .08s;
   box-shadow:0 2px 4px -2px rgba(90,64,56,.35);
   -webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0),#000 6%,#000 94%,rgba(0,0,0,0));mask-image:linear-gradient(90deg,rgba(0,0,0,0),#000 6%,#000 94%,rgba(0,0,0,0));}
 .pola-item.tape-1::before{background:repeating-linear-gradient(112deg,rgba(245,199,209,.95) 0 6px,rgba(255,243,245,.96) 6px 12px);}
@@ -960,7 +960,7 @@ async function openAlbumBook(a){
   if(flipping||placing) return;
   openAlbum=a;albumLoadedFor=null;
   try{await loadAlbumPhotos();}catch(e){console.error('album:',e);}
-  // 페이지가 넘어가 자리를 잡으면, 붙어 있던 사진들이 옆에서 한 장씩 날아와 붙음
+  // 페이지가 넘어가 자리를 잡으면, 붙어 있던 사진들이 왼쪽에서 한 장씩 샤라락 나타남
   riffle(1,{content:true,mid:showAlbumView,done:function(release){release();animateAlbumIn();}});
 }
 function showAlbumView(){
@@ -984,8 +984,8 @@ function closeAlbum(silent){
 }
 
 // --- 앨범 사진 불러오기 · 그리기 ---
-var albumLoadedFor=null;   // 이 앨범의 사진을 한 번 받아온 뒤인지 (그 뒤에 새로 생긴 짝꿍 사진은 옆에서 날아와 붙음)
-var flyNext=null;          // 다음에 그릴 때 날아와 붙을 사진: 'all' 또는 id 집합
+var albumLoadedFor=null;   // 이 앨범의 사진을 한 번 받아온 뒤인지 (그 뒤에 새로 생긴 짝꿍 사진도 같은 식으로 나타남)
+var flyNext=null;          // 다음에 그릴 때 샤라락 나타날 사진: 'all' 또는 id 집합
 async function loadAlbumPhotos(){
   var prev=albumPhotos;
   albumPhotos=[];
@@ -1004,26 +1004,23 @@ async function loadAlbumPhotos(){
   albumLoadedFor=openAlbum.id;
   if(viewOpen) renderAlbum();
 }
-// 옆(오른쪽 바깥)에서 한 장씩 날아와 제자리에 붙고, 붙은 뒤 테이프가 올라옴
+// 안 보이다가 왼쪽에서 살짝 밀려 나오며 한 장씩 서서히 나타남(샤라락). 다 나타난 뒤 테이프가 올라옴
 function animateAlbumIn(){
   var canvas=document.getElementById('album-canvas');
   var items=Array.prototype.slice.call(canvas.querySelectorAll('.pola-item.flying'));
   if(!items.length) return;
   if(!canAnimate()){items.forEach(function(e){e.classList.remove('flying');});return;}
-  var W=canvas.clientWidth,gap=Math.min(120,Math.max(45,1500/items.length));
+  var gap=Math.min(130,Math.max(60,1600/items.length));
   items.forEach(function(el,i){
     var rot=parseFloat((el.style.transform.match(/rotate\(([-\d.]+)deg\)/)||[0,0])[1])||0;
-    var dx=W-(parseFloat(el.style.left)||0)+90,dy=-40+Math.random()*80;
     var done=false;
-    function land(){if(done)return;done=true;el.classList.remove('flying');try{anim.cancel();}catch(x){}}
+    function settle(){if(done)return;done=true;el.classList.remove('flying');try{anim.cancel();}catch(x){}}
     var anim=el.animate([
-      {transform:'translate('+dx+'px,'+dy+'px) rotate('+(rot+16)+'deg) scale(1.08)',opacity:0},
-      {opacity:1,offset:0.22},
-      {transform:'translate(0,0) rotate('+rot+'deg) scale(1.04)',offset:0.8},
-      {transform:'translate(0,0) rotate('+rot+'deg) scale(1)',opacity:1}
-    ],{duration:580,delay:i*gap,easing:'cubic-bezier(.2,.75,.25,1)',fill:'both'});
-    anim.onfinish=land;
-    setTimeout(land,i*gap+640);   // onfinish 가 늦는 환경 대비
+      {transform:'translate(-26px,0) rotate('+(rot-2)+'deg)',opacity:0},
+      {transform:'translate(0,0) rotate('+rot+'deg)',opacity:1}
+    ],{duration:720,delay:i*gap,easing:'cubic-bezier(.22,.61,.36,1)',fill:'both'});
+    anim.onfinish=settle;
+    setTimeout(settle,i*gap+780);   // onfinish 가 늦는 환경 대비
   });
 }
 function polaWidth(W){return Math.max(104,Math.min(180,W*0.3));}
