@@ -475,9 +475,9 @@ create policy "storage: 커플 사진 보기" on storage.objects
 create policy "storage: 커플 사진 올리기" on storage.objects
   for insert to authenticated
   with check (bucket_id = 'photos' and (storage.foldername(name))[1] = public.my_couple_id()::text);
-create policy "storage: 커플 사진 삭제" on storage.objects
+create policy "storage: 내 사진 파일 삭제" on storage.objects   -- 파일 삭제는 올린 사람 본인만
   for delete to authenticated
-  using (bucket_id = 'photos' and (storage.foldername(name))[1] = public.my_couple_id()::text);
+  using (bucket_id = 'photos' and (storage.foldername(name))[1] = public.my_couple_id()::text and owner = auth.uid());
 
 
 -- ---------- 실시간 반영 (Realtime) ----------

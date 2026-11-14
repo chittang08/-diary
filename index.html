@@ -765,14 +765,16 @@ function calToday(){var n=new Date();calGo(n.getFullYear(),n.getMonth());}
 // 버킷이 비공개라 보여줄 때는 1시간짜리 서명 주소를 받아서 씀.
 var monthPhotos={};     // {'YYYY-MM-DD': [{id,storage_path,uploader_id,url}, ...]} 지금 보는 달
 var photoUrlCache={};   // storage_path → {url, exp}
+var SIGN_SECS=7*24*3600;   // 열람 주소 유효 기간 (7일). 화면에 돌아오거나 당겨서 새로고침하면 어차피 새로 받음
 var openDayKey=null;
 
 async function signPaths(paths){
   var need=paths.filter(function(p){var c=photoUrlCache[p];return !(c&&c.exp>Date.now()+60000);});
   if(!need.length) return;
-  var r=await sb.storage.from('photos').createSignedUrls(need,3600);
+  // 파일은 영구 보관. 비공개 버킷이라 보여줄 때만 7일짜리 열람 주소를 받고, 만료가 가까우면 다시 받음
+  var r=await sb.storage.from('photos').createSignedUrls(need,SIGN_SECS);
   if(r.error) throw r.error;
-  (r.data||[]).forEach(function(x){if(x.signedUrl&&x.path) photoUrlCache[x.path]={url:x.signedUrl,exp:Date.now()+3600e3};});
+  (r.data||[]).forEach(function(x){if(x.signedUrl&&x.path) photoUrlCache[x.path]={url:x.signedUrl,exp:Date.now()+SIGN_SECS*1000};});
 }
 async function loadMonthPhotos(){
   monthPhotos={};
@@ -1293,8 +1295,9 @@ document.getElementById('album-new-form').addEventListener('submit',async functi
 async function deleteAlbum(){
   if(!openAlbum||!sb||placing) return;
   var n=albumCounts[openAlbum.id]||0;
-  if(!confirm("'"+openAlbum.title+"' 앨범을 지울까?\n안에 있는 사진 "+n+"장도 함께 지워지고 되돌릴 수 없어.")) return;
-  var paths=albumPhotos.map(function(p){return p.storage_path;});
+  if(n>0){alert('안에 사진이 '+n+'장 있어요.\n사진은 한 장씩만 뗄 수 있어서, 먼저 사진을 다 뗀 뒤에 앨범을 지울 수 있어요.');return;}   // 한 번에 여러 장이 지워지는 길은 막아 둠
+  if(!confirm("'"+openAlbum.title+"' 앨범을 지울까?\n되돌릴 수 없어.")) return;
+  var paths=[];
   var d=await sb.from('albums').delete().eq('id',openAlbum.id);
   if(d.error){alert('지우지 못했어요. 다시 해주세요.');return;}
   if(paths.length) sb.storage.from('photos').remove(paths).then(function(r){if(r.error)console.error('remove files:',r.error);});
