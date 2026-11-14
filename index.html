@@ -348,6 +348,13 @@ body.cover-on{overflow:hidden;}
 .day-add:has(input:disabled){opacity:.6;cursor:progress;}
 .day-msg{font-size:12.5px;color:var(--red);margin-top:10px;min-height:1em;line-height:1.5;}
 .day-msg.ok{color:var(--green);}
+.ask{z-index:7300;}   /* 다른 창(날짜 종이·배치 막대·새 앨범) 위에 뜸 */
+.ask-card{width:min(340px,100%);padding:26px 20px 20px;text-align:center;}
+.ask-card .day-title{padding-right:0;}
+.ask-card .day-sub{margin:6px 0 0;}
+.ask-actions{display:flex;gap:10px;margin-top:20px;}
+.ask-actions .gate-btn{margin:0;flex:1;font-size:16px;padding:10px;}
+.gate-btn.danger-solid{background:linear-gradient(180deg,#CB635C,#A94841);box-shadow:0 9px 18px -13px rgba(120,50,45,.95),inset 0 1px 0 rgba(255,255,255,.28);}
 .photo-view{position:fixed;inset:0;z-index:7500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;
   background:rgba(30,24,20,.9);cursor:zoom-out;}
 .photo-view img{max-width:100%;max-height:calc(100vh - 80px);border-radius:3px;box-shadow:0 20px 50px rgba(0,0,0,.5);background:#111;}
@@ -633,6 +640,17 @@ html,body{overscroll-behavior-y:contain;}
     <button type="button" class="gate-btn ghost danger" id="place-del" hidden>지우기</button>
     <button type="button" class="gate-btn ghost" id="place-cancel">취소</button>
     <button type="button" class="gate-btn" id="place-ok">붙이기</button>
+  </div>
+</div>
+<!-- 지우기 전에 한 번 더 묻기 (브라우저 기본 확인창 대신) -->
+<div id="ask" class="day-sheet ask" hidden>
+  <div class="day-card ask-card" role="alertdialog" aria-labelledby="ask-title">
+    <div class="day-title" id="ask-title">진짜 삭제할거야..?</div>
+    <div class="day-sub" id="ask-sub"></div>
+    <div class="ask-actions">
+      <button type="button" class="gate-btn ghost" id="ask-no">아니, 그냥 둘래</button>
+      <button type="button" class="gate-btn danger-solid" id="ask-yes">응, 지울래</button>
+    </div>
   </div>
 </div>
 <!-- 사진 크게 보기 -->
@@ -925,7 +943,7 @@ document.getElementById('day-file').addEventListener('change',function(){
 });
 async function deletePhoto(p){
   if(!sb||!me) return;
-  if(!confirm('이 사진을 지울까?\n지우면 되돌릴 수 없어.')) return;
+  if(!await askConfirm('이 사진 한 장만 지워지고, 되돌릴 수 없어.')) return;
   var d=await sb.from('photos').delete().eq('id',p.id);
   if(d.error){setDayMsg('지우지 못했어요. 다시 해주세요.');return;}
   var rm=await sb.storage.from('photos').remove([p.storage_path]);
@@ -933,6 +951,20 @@ async function deletePhoto(p){
   delete photoUrlCache[p.storage_path];
   try{await loadMonthPhotos();}catch(e){console.error('photos:',e);}
   setDayMsg('지웠어요.',true);
+}
+
+// --- 지우기 전에 묻기: 브라우저 기본 확인창은 환경에 따라 막히거나 문구를 못 바꿔서 직접 만듦 ---
+function askConfirm(sub,title){
+  return new Promise(function(res){
+    var el=document.getElementById('ask'),yes=document.getElementById('ask-yes'),no=document.getElementById('ask-no');
+    document.getElementById('ask-title').textContent=title||'진짜 삭제할거야..?';
+    document.getElementById('ask-sub').textContent=sub||'';
+    el.hidden=false;no.focus();
+    function done(v){el.hidden=true;yes.removeEventListener('click',y);no.removeEventListener('click',n);el.removeEventListener('click',bg);res(v);}
+    function y(){done(true);}function n(){done(false);}function bg(e){if(e.target===el)done(false);}
+    yes.addEventListener('click',y);no.addEventListener('click',n);el.addEventListener('click',bg);
+    window.__askClose=n;   // Esc 로 닫을 때
+  });
 }
 
 // --- 크게 보기 ---
@@ -1216,7 +1248,7 @@ async function savePlacing(){
 async function deletePlacing(){
   if(!placing||placing.mode!=='edit'||!sb) return;
   var p=placing.photo;
-  if(!confirm('이 사진을 앨범에서 뗄까?\n지우면 되돌릴 수 없어.')) return;
+  if(!await askConfirm('이 사진 한 장만 앨범에서 떼어지고, 되돌릴 수 없어.')) return;
   var d=await sb.from('photos').delete().eq('id',p.id);
   if(d.error){alert('지우지 못했어요. 다시 해주세요.');return;}
   sb.storage.from('photos').remove([p.storage_path]).then(function(r){if(r.error)console.error('remove file:',r.error);});
@@ -1296,7 +1328,7 @@ async function deleteAlbum(){
   if(!openAlbum||!sb||placing) return;
   var n=albumCounts[openAlbum.id]||0;
   if(n>0){alert('안에 사진이 '+n+'장 있어요.\n사진은 한 장씩만 뗄 수 있어서, 먼저 사진을 다 뗀 뒤에 앨범을 지울 수 있어요.');return;}   // 한 번에 여러 장이 지워지는 길은 막아 둠
-  if(!confirm("'"+openAlbum.title+"' 앨범을 지울까?\n되돌릴 수 없어.")) return;
+  if(!await askConfirm("'"+openAlbum.title+"' 앨범이 지워져. 되돌릴 수 없어.")) return;
   var paths=[];
   var d=await sb.from('albums').delete().eq('id',openAlbum.id);
   if(d.error){alert('지우지 못했어요. 다시 해주세요.');return;}
@@ -1437,7 +1469,7 @@ function goPrev(){
 }
 var TAP_IGNORE='button,input,textarea,select,a,label,[onclick],.bookmark,.cal-grid,.day-sheet,.photo-view,.album-panel,.place-bar';
 function isGateShown(){return !document.getElementById('gate').hidden;}
-function isOverlayShown(){return !document.getElementById('day-sheet').hidden||!document.getElementById('photo-view').hidden||!document.getElementById('album-new').hidden||!!placing;}
+function isOverlayShown(){return !document.getElementById('day-sheet').hidden||!document.getElementById('photo-view').hidden||!document.getElementById('album-new').hidden||!document.getElementById('ask').hidden||!!placing;}
 document.addEventListener('click',function(e){
   if(isCoverShown()||isGateShown()||isOverlayShown()||e.target.closest('#cover')) return;
   if(e.target.closest(TAP_IGNORE)) return;
@@ -1449,7 +1481,8 @@ document.addEventListener('keydown',function(e){
   var tag=(e.target.tagName||'').toLowerCase();
   if(tag==='input'||tag==='textarea'||tag==='select') return;
   if(e.key==='Escape'){
-    if(!document.getElementById('photo-view').hidden) closePhotoView();
+    if(!document.getElementById('ask').hidden){if(window.__askClose)window.__askClose();}
+    else if(!document.getElementById('photo-view').hidden) closePhotoView();
     else if(!document.getElementById('day-sheet').hidden) closeDay();
     else if(!document.getElementById('album-new').hidden) closeNewAlbum();
     else if(placing) cancelPlacing();
