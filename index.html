@@ -253,17 +253,20 @@ body.cover-on{overflow:hidden;}
 :root{--pencil:rgba(70,55,42,.22);--pencil-dark:rgba(70,55,42,.38);
   /* 구겨진 종이의 명암: 노이즈 표면에 빛을 비춘 것 (multiply 로 겹치면 접힌 자리만 살짝 어두워짐) */
   --crumple:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='5' seed='11' stitchTiles='stitch'/%3E%3CfeDiffuseLighting lighting-color='%23ffffff' surfaceScale='1.7' diffuseConstant='1.22'%3E%3CfeDistantLight azimuth='38' elevation='66'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)'/%3E%3C/svg%3E");}
-/* 꾸깃한 종이 한 장: 밝은 크림색 + 주름 명암(평평한 곳은 그대로, 접힌 곳만 살짝 그늘) + 접힌 자국 두 줄, 오른쪽 위는 살짝 접힌 귀퉁이 */
-.calendar,.album-panel{position:relative;margin:6px 8px 12px 4px;padding:18px 16px 16px;border-radius:2px;border:1px solid var(--pencil);
+/* 종이 두 장: 뒤에 한 장이 살짝 어긋나게 깔려 두께감, 앞 장은 밝은 크림색 + 은은한 주름 명암, 오른쪽 위는 살짝 접힌 귀퉁이 */
+.sheet-wrap{position:relative;margin:6px 8px 12px 4px;}
+.sheet-wrap::before{content:'';position:absolute;inset:0;border-radius:2px;border:1px solid var(--pencil);pointer-events:none;
+  background:var(--grain-paper),linear-gradient(180deg,#FBF5E7 0%,#F6EEDC 100%);
+  box-shadow:0 1px 2px rgba(70,52,36,.1),0 10px 20px -16px rgba(70,52,36,.55);
+  transform:rotate(1deg) translate(5px,6px);}
+.calendar,.album-panel{position:relative;margin:0;padding:18px 16px 16px;border-radius:2px;border:1px solid var(--pencil);
   background:
     var(--grain-paper),
-    linear-gradient(118deg,rgba(0,0,0,0) 46.7%,rgba(255,255,255,.5) 47.1%,rgba(70,55,42,.045) 47.5%,rgba(0,0,0,0) 48.1%),
-    linear-gradient(-24deg,rgba(0,0,0,0) 62.2%,rgba(70,55,42,.035) 62.5%,rgba(255,255,255,.45) 62.9%,rgba(0,0,0,0) 63.4%),
     var(--crumple),
     linear-gradient(180deg,#FFFEF9 0%,#FDF9EE 100%);
-  background-size:auto,auto,auto,640px 640px,auto;
-  background-blend-mode:normal,normal,normal,multiply,normal;
-  box-shadow:0 1px 2px rgba(70,52,36,.12),0 10px 20px -18px rgba(70,52,36,.5);
+  background-size:auto,640px 640px,auto;
+  background-blend-mode:normal,multiply,normal;
+  box-shadow:0 1px 2px rgba(70,52,36,.12),0 8px 18px -16px rgba(70,52,36,.45);
   transform:rotate(-.45deg);}
 .calendar::before,.album-panel::before{content:'';position:absolute;top:-1px;right:-1px;width:0;height:0;border-style:solid;border-width:0 26px 26px 0;
   border-color:#FCF6E8 #FCF6E8 #EFE5D1 #EFE5D1;   /* 위·오른쪽은 밑 종이색, 아래·왼쪽은 접힌 면 */
@@ -346,7 +349,8 @@ body.cover-on{overflow:hidden;}
 .photo-view img{max-width:100%;max-height:calc(100vh - 80px);border-radius:3px;box-shadow:0 20px 50px rgba(0,0,0,.5);background:#111;}
 .photo-view-cap{font-family:var(--hand);font-size:14px;color:rgba(255,246,236,.85);}
 @media(max-width:500px){
-  .calendar{margin:2px 2px 8px 0;padding:14px 9px 10px;}
+  .sheet-wrap{margin:2px 4px 10px 0;}
+  .calendar{padding:14px 9px 10px;}
   .cal-head{padding:0 0 10px;}
   .cal-year-wrap{position:static;justify-content:flex-start;margin-bottom:2px;}   /* 작은 화면에선 ‹ › 와 겹치지 않게 윗줄로 */
   .cal-year{font-size:11.5px;}
@@ -426,7 +430,7 @@ body.cover-on{overflow:hidden;}
 .swatch{width:30px;height:30px;border-radius:50%;border:2px solid rgba(0,0,0,0);background:var(--c);box-shadow:0 2px 5px -2px rgba(60,40,30,.5);transition:transform .15s;}
 .swatch.on{border-color:var(--ink);transform:scale(1.14);}
 @media(max-width:500px){
-  .album-panel{margin:2px 2px 8px 0;padding:12px 10px 14px;}
+  .album-panel{padding:12px 10px 14px;}
   .album-title{font-size:23px;}
   .album-open .album-title{flex:1 1 100%;order:3;white-space:normal;margin-top:2px;}   /* 작은 화면: 앨범 이름은 버튼 아랫줄에 */
   .shelf{grid-template-columns:repeat(3,1fr);gap:14px 10px;}
@@ -515,6 +519,7 @@ html,body{overscroll-behavior-y:contain;}
   <div class="pages">
   <!-- 캘린더 -->
   <div id="tab-calendar" class="page active">
+    <div class="sheet-wrap">
     <section class="calendar" aria-label="캘린더">
       <div class="cal-head">
         <div class="cal-year-wrap">
@@ -536,10 +541,12 @@ html,body{overscroll-behavior-y:contain;}
         <div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow sat">토</div>
       </div>
     </section>
+    </div>
   </div>
 
   <!-- 사진첩: 앨범(작은 책)들 → 앨범을 열면 폴라로이드가 붙은 페이지 -->
   <div id="tab-album" class="page" inert>
+    <div class="sheet-wrap">
     <section class="album-panel" id="album-shelf" aria-label="사진첩">
       <div class="album-head">
         <div class="album-title">사진첩</div>
@@ -561,6 +568,7 @@ html,body{overscroll-behavior-y:contain;}
       <div class="album-canvas" id="album-canvas"></div>
       <div class="album-empty" id="album-empty" hidden>사진을 붙여서 이 앨범을 채워 보세요</div>
     </section>
+    </div>
   </div>
 
   </div>
