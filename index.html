@@ -421,6 +421,7 @@ body.cover-on{overflow:hidden;}
 @media(max-width:500px){
   .album-panel{margin:2px 2px 8px 0;padding:12px 10px 14px;}
   .album-title{font-size:23px;}
+  .album-open .album-title{flex:1 1 100%;order:3;white-space:normal;margin-top:2px;}   /* 작은 화면: 앨범 이름은 버튼 아랫줄에 */
   .shelf{grid-template-columns:repeat(3,1fr);gap:14px 10px;}
   .pola-cap{font-size:11.5px;}
   .place-hint{display:none;}
@@ -994,7 +995,7 @@ function defaultPos(i,W,pw){var cols=Math.max(1,Math.floor((W-20)/(pw+14)));retu
 function tapeIndex(id){var h=0;id=id||'';for(var i=0;i<id.length;i++)h=(h*31+id.charCodeAt(i))|0;return Math.abs(h)%3;}
 function renderAlbum(){
   var canvas=document.getElementById('album-canvas');
-  canvas.querySelectorAll('.pola-item:not(.placing)').forEach(function(e){e.remove();});
+  canvas.querySelectorAll('.pola-item').forEach(function(e){if(!(placing&&placing.el===e)) e.remove();});   // 배치 중인 것만 남김
   var W=canvas.clientWidth||1,pw=polaWidth(W);
   document.getElementById('album-empty').hidden=albumPhotos.length>0||!!placing;
   albumPhotos.forEach(function(p,i){
@@ -1112,26 +1113,27 @@ function cancelPlacing(){
 }
 async function savePlacing(){
   if(!placing||!sb||!me||!couple||!openAlbum) return;
+  var pl=placing,alb=openAlbum;   // 저장하는 동안 앨범이 닫히거나 바뀌어도 시작할 때 것으로 끝까지 진행
   var W=document.getElementById('album-canvas').clientWidth;
-  var x=Math.max(0,Math.min(1,placing.x/W)),y=Math.max(0,placing.y/W),rot=Math.round(placing.rot);
+  var x=Math.max(0,Math.min(1,pl.x/W)),y=Math.max(0,pl.y/W),rot=Math.round(pl.rot);
   var cap=(document.getElementById('place-caption').value||'').trim().slice(0,60);
   var ok=document.getElementById('place-ok');ok.disabled=true;
-  var wasNew=placing.mode==='new';
+  var wasNew=pl.mode==='new';
   try{
     if(wasNew){
       ok.textContent='붙이는 중…';
-      var path=couple.id+'/album_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+'.'+placing.ext;
-      var up=await sb.storage.from('photos').upload(path,placing.blob,{contentType:placing.type,upsert:false});
+      var path=couple.id+'/album_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+'.'+pl.ext;
+      var up=await sb.storage.from('photos').upload(path,pl.blob,{contentType:pl.type,upsert:false});
       if(up.error) throw up.error;
-      var ins=await sb.from('photos').insert({couple_id:couple.id,uploader_id:me.id,storage_path:path,album_id:openAlbum.id,pos_x:x,pos_y:y,rot:rot,caption:cap||null});
+      var ins=await sb.from('photos').insert({couple_id:couple.id,uploader_id:me.id,storage_path:path,album_id:alb.id,pos_x:x,pos_y:y,rot:rot,caption:cap||null});
       if(ins.error){await sb.storage.from('photos').remove([path]);throw ins.error;}
-      placing.el.remove();URL.revokeObjectURL(placing.url);
+      pl.el.remove();URL.revokeObjectURL(pl.url);
     } else {
-      var upd=await sb.from('photos').update({pos_x:x,pos_y:y,rot:rot,caption:cap||null}).eq('id',placing.photo.id);
+      var upd=await sb.from('photos').update({pos_x:x,pos_y:y,rot:rot,caption:cap||null}).eq('id',pl.photo.id);
       if(upd.error) throw upd.error;
-      placing.el.classList.remove('placing');
+      pl.el.classList.remove('placing');
     }
-    placing=null;hidePlaceBar();
+    if(placing===pl){placing=null;hidePlaceBar();}
     await loadAlbums();
     if(wasNew) nextInQueue();
   }catch(err){
@@ -1147,6 +1149,7 @@ async function deletePlacing(){
   if(d.error){alert('지우지 못했어요. 다시 해주세요.');return;}
   sb.storage.from('photos').remove([p.storage_path]).then(function(r){if(r.error)console.error('remove file:',r.error);});
   delete photoUrlCache[p.storage_path];
+  placing.el.remove();
   placing=null;hidePlaceBar();
   try{await loadAlbums();}catch(e){console.error(e);}
 }
