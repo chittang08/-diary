@@ -250,11 +250,24 @@ body.cover-on{overflow:hidden;}
 .page.active{visibility:visible;}
 /* ===== 캘린더 (페이지 위에 따로 얹은 종이 한 장) ===== */
 /* 종이 위에 연필로 그린 달력 느낌: 칸은 상자가 아니라 가는 선, 장식은 손글씨·형광펜 */
-:root{--pencil:rgba(70,55,42,.22);--pencil-dark:rgba(70,55,42,.38);}
-.calendar{position:relative;margin:6px 8px 12px 4px;padding:18px 16px 16px;border-radius:2px;
-  background:var(--grain-paper),linear-gradient(180deg,#FDF9EE 0%,#FAF4E4 100%);
-  border:1px solid var(--pencil);
-  box-shadow:0 1px 2px rgba(70,52,36,.1),0 10px 20px -18px rgba(70,52,36,.5);}
+:root{--pencil:rgba(70,55,42,.22);--pencil-dark:rgba(70,55,42,.38);
+  /* 구겨진 종이의 명암: 노이즈 표면에 빛을 비춘 것 (multiply 로 겹치면 접힌 자리만 살짝 어두워짐) */
+  --crumple:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='5' seed='11' stitchTiles='stitch'/%3E%3CfeDiffuseLighting lighting-color='%23ffffff' surfaceScale='1.7' diffuseConstant='1.22'%3E%3CfeDistantLight azimuth='38' elevation='66'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)'/%3E%3C/svg%3E");}
+/* 꾸깃한 종이 한 장: 밝은 크림색 + 주름 명암(평평한 곳은 그대로, 접힌 곳만 살짝 그늘) + 접힌 자국 두 줄, 오른쪽 위는 살짝 접힌 귀퉁이 */
+.calendar,.album-panel{position:relative;margin:6px 8px 12px 4px;padding:18px 16px 16px;border-radius:2px;border:1px solid var(--pencil);
+  background:
+    var(--grain-paper),
+    linear-gradient(118deg,rgba(0,0,0,0) 46.7%,rgba(255,255,255,.5) 47.1%,rgba(70,55,42,.045) 47.5%,rgba(0,0,0,0) 48.1%),
+    linear-gradient(-24deg,rgba(0,0,0,0) 62.2%,rgba(70,55,42,.035) 62.5%,rgba(255,255,255,.45) 62.9%,rgba(0,0,0,0) 63.4%),
+    var(--crumple),
+    linear-gradient(180deg,#FFFEF9 0%,#FDF9EE 100%);
+  background-size:auto,auto,auto,640px 640px,auto;
+  background-blend-mode:normal,normal,normal,multiply,normal;
+  box-shadow:0 1px 2px rgba(70,52,36,.12),0 10px 20px -18px rgba(70,52,36,.5);
+  transform:rotate(-.45deg);}
+.calendar::before,.album-panel::before{content:'';position:absolute;top:-1px;right:-1px;width:0;height:0;border-style:solid;border-width:0 26px 26px 0;
+  border-color:#FCF6E8 #FCF6E8 #EFE5D1 #EFE5D1;   /* 위·오른쪽은 밑 종이색, 아래·왼쪽은 접힌 면 */
+  filter:drop-shadow(-1px 1px 1px rgba(70,52,36,.22));pointer-events:none;z-index:1;}
 .cal-head{position:relative;text-align:center;padding:6px 0 16px;}
 .cal-year-wrap{position:absolute;left:0;top:0;display:flex;align-items:center;gap:5px;}
 .cal-year{font-family:var(--hand);font-size:13px;letter-spacing:.16em;color:var(--ink2);opacity:.5;}
@@ -333,7 +346,7 @@ body.cover-on{overflow:hidden;}
 .photo-view img{max-width:100%;max-height:calc(100vh - 80px);border-radius:3px;box-shadow:0 20px 50px rgba(0,0,0,.5);background:#111;}
 .photo-view-cap{font-family:var(--hand);font-size:14px;color:rgba(255,246,236,.85);}
 @media(max-width:500px){
-  .calendar{margin:2px 2px 8px 0;padding:14px 9px 10px;border-radius:6px;}
+  .calendar{margin:2px 2px 8px 0;padding:14px 9px 10px;}
   .cal-head{padding:0 0 10px;}
   .cal-year-wrap{position:static;justify-content:flex-start;margin-bottom:2px;}   /* 작은 화면에선 ‹ › 와 겹치지 않게 윗줄로 */
   .cal-year{font-size:11.5px;}
@@ -352,10 +365,7 @@ body.cover-on{overflow:hidden;}
   .day-photos{gap:10px 8px;}
 }
 /* ===== 사진첩 (앨범 책장 · 앨범 페이지) ===== */
-.album-panel{position:relative;margin:6px 8px 12px 4px;padding:18px 18px 20px;border-radius:7px;
-  background:var(--grain-paper),linear-gradient(180deg,#FFFDF8 0%,#FCF7EA 60%,#F9F2E1 100%);
-  border:1px solid rgba(94,74,54,.15);
-  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 0 0 1px rgba(255,255,255,.35) inset,0 12px 24px -18px rgba(70,52,36,.65);}
+.album-panel{padding:18px 18px 20px;}   /* 종이 질감은 위 .calendar,.album-panel 공통 규칙 */
 .album-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
 .album-title{flex:1;min-width:0;font-family:var(--hand);font-size:28px;font-weight:700;color:var(--ink);line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .album-add{font-family:var(--hand);font-size:15px;color:var(--ink2);background:rgba(255,253,245,.6);border:1.2px dashed rgba(94,74,54,.32);border-radius:9px;padding:6px 12px;transition:all .18s;white-space:nowrap;}
