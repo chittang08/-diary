@@ -70,11 +70,6 @@ body{background-color:var(--desk);color:var(--ink);font-family:var(--body);font-
 /* 왼쪽 여백선 */
 .paper::before{content:'';position:absolute;z-index:1;left:36px;top:0;bottom:0;width:1.2px;background:rgba(198,104,120,.34);pointer-events:none;}
 /* 마스킹 테이프 */
-.paper::after{content:'';position:absolute;z-index:4;top:-7px;left:30%;width:104px;height:22px;border-radius:1px;pointer-events:none;
-  background:repeating-linear-gradient(112deg,rgba(245,199,209,.92) 0 7px,rgba(255,243,245,.94) 7px 14px);
-  box-shadow:0 3px 6px -2px rgba(90,64,56,.22);transform:rotate(-2.4deg);
-  -webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0),#000 3%,#000 97%,rgba(0,0,0,0)),linear-gradient(180deg,rgba(0,0,0,0),#000 9%,#000 91%,rgba(0,0,0,0));
-  -webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,rgba(0,0,0,0),#000 3%,#000 97%,rgba(0,0,0,0)),linear-gradient(180deg,rgba(0,0,0,0),#000 9%,#000 91%,rgba(0,0,0,0));mask-composite:intersect;}
 .spiral{position:absolute;z-index:3;left:-18px;top:18px;bottom:18px;width:40px;background:var(--ring) 0 0/40px 26px round;pointer-events:none;
   filter:drop-shadow(1px 1px 1px rgba(60,45,32,.18));}
 .bookmarks{position:absolute;z-index:1;top:88px;right:-42px;display:flex;flex-direction:column;gap:6px;}
@@ -231,7 +226,6 @@ body.cover-on{overflow:hidden;}
   .bookmarks{right:-34px;top:70px;}
   .cover-tabs{right:-34px;}
   .bookmark{width:38px;font-size:14.5px;padding:14px 0 13px 14px;}
-  .paper::after{width:84px;height:19px;left:34%;}
   .header-title{font-size:25px;}
   .header-chapter{display:block;margin:1px 0 0 0;font-size:15px;line-height:1.5;}
   .header-chapter::before{content:'';}
@@ -255,33 +249,37 @@ body.cover-on{overflow:hidden;}
 .page{grid-area:1/1;min-width:0;visibility:hidden;}
 .page.active{visibility:visible;}
 /* ===== 캘린더 (페이지 위에 따로 얹은 종이 한 장) ===== */
-.calendar{position:relative;margin:6px 8px 12px 4px;padding:20px 18px 18px;border-radius:7px;
-  background:var(--grain-paper),linear-gradient(180deg,#FFFDF8 0%,#FCF7EA 60%,#F9F2E1 100%);
-  border:1px solid rgba(94,74,54,.15);
-  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 0 0 1px rgba(255,255,255,.35) inset,0 12px 24px -18px rgba(70,52,36,.65);}
+/* 종이 위에 연필로 그린 달력 느낌: 칸은 상자가 아니라 가는 선, 장식은 손글씨·형광펜 */
+:root{--pencil:rgba(70,55,42,.22);--pencil-dark:rgba(70,55,42,.38);}
+.calendar{position:relative;margin:6px 8px 12px 4px;padding:18px 16px 16px;border-radius:2px;
+  background:var(--grain-paper),linear-gradient(180deg,#FDF9EE 0%,#FAF4E4 100%);
+  border:1px solid var(--pencil);
+  box-shadow:0 1px 2px rgba(70,52,36,.1),0 10px 20px -18px rgba(70,52,36,.5);}
 .cal-head{position:relative;text-align:center;padding:6px 0 16px;}
 .cal-year-wrap{position:absolute;left:0;top:0;display:flex;align-items:center;gap:5px;}
 .cal-year{font-family:var(--hand);font-size:13px;letter-spacing:.16em;color:var(--ink2);opacity:.5;}
 .cal-year-nav{display:flex;flex-direction:column;gap:2px;}
-.cal-year-nav button{width:17px;height:17px;border:1px solid rgba(94,74,54,.3);border-radius:50%;background:rgba(255,253,245,.7);
-  font-size:7px;line-height:1;color:var(--ink2);display:flex;align-items:center;justify-content:center;padding:0;opacity:.7;transition:all .18s;}
-.cal-year-nav button:hover{opacity:1;color:var(--rose-deep);border-color:rgba(191,110,126,.55);background:#FFFCF3;}
+.cal-year-nav button{width:16px;height:13px;border:none;background:none;
+  font-size:8px;line-height:1;color:var(--ink2);display:flex;align-items:center;justify-content:center;padding:0;opacity:.55;transition:all .18s;}
+.cal-year-nav button:hover{opacity:1;color:var(--rose-deep);}
 .cal-year-nav button:disabled{opacity:.2;cursor:default;}
 .cal-title-row{display:flex;align-items:center;justify-content:center;gap:10px;}
-.cal-month{border:none;background:none;padding:0 6px;font-family:var(--hand);font-size:40px;font-weight:700;line-height:1;color:var(--ink);letter-spacing:.02em;border-radius:8px;}
-.cal-month:hover{background:rgba(246,201,210,.35);}
-.cal-nav{width:34px;height:34px;border:1px dashed rgba(94,74,54,.3);border-radius:50%;background:rgba(255,253,245,.6);
-  font-family:var(--hand);font-size:24px;line-height:1;color:var(--ink2);display:flex;align-items:center;justify-content:center;padding:0 0 3px;transition:all .18s;}
-.cal-nav:hover{color:var(--rose-deep);border-color:rgba(191,110,126,.55);background:#FFFCF3;}
+.cal-month{border:none;padding:0 8px;font-family:var(--hand);font-size:40px;font-weight:700;line-height:1;color:var(--ink);letter-spacing:.02em;border-radius:0;
+  background:linear-gradient(180deg,rgba(0,0,0,0) 56%,rgba(247,219,132,.5) 56%,rgba(247,219,132,.5) 94%,rgba(0,0,0,0) 94%);}   /* 형광펜 자국 */
+.cal-month:hover{background:linear-gradient(180deg,rgba(0,0,0,0) 56%,rgba(247,219,132,.78) 56%,rgba(247,219,132,.78) 94%,rgba(0,0,0,0) 94%);}
+.cal-nav{width:32px;height:32px;border:none;background:none;
+  font-family:var(--hand);font-size:28px;line-height:1;color:var(--ink2);display:flex;align-items:center;justify-content:center;padding:0 0 4px;transition:color .18s;}
+.cal-nav:hover{color:var(--rose-deep);}
 .cal-nav:disabled{opacity:.25;cursor:default;}
 .cal-month-en{display:block;margin-top:5px;font-family:var(--hand);font-size:12px;letter-spacing:.32em;color:var(--rose-deep);opacity:.75;padding-left:.32em;}
-.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;}
-.cal-dow{font-family:var(--hand);font-size:14px;text-align:center;color:var(--ink2);padding:0 0 6px;letter-spacing:.06em;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;border-top:1px solid var(--pencil);border-left:1px solid var(--pencil);}
+.cal-dow{font-family:var(--hand);font-size:14px;text-align:center;color:var(--ink2);padding:5px 0 6px;letter-spacing:.06em;
+  border-right:1px solid var(--pencil);border-bottom:1.4px solid var(--pencil-dark);}
 .cal-dow.sun{color:var(--rose-deep);}
 .cal-dow.sat{color:var(--blue);}
-.cal-day{position:relative;min-width:0;aspect-ratio:1/1.18;border-radius:7px;padding:6px 7px;font-family:var(--hand);font-size:16px;line-height:1;color:var(--ink);
-  background:rgba(255,255,255,.34);border:1px solid rgba(94,74,54,.11);overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:box-shadow .18s,transform .18s;}
-.cal-day:hover{box-shadow:0 4px 10px -6px rgba(70,52,36,.5);transform:translateY(-1px);}
+.cal-day{position:relative;min-width:0;aspect-ratio:1/1.18;border-radius:0;padding:6px 7px;font-family:var(--hand);font-size:16px;line-height:1;color:var(--ink);
+  background:none;border:0;border-right:1px solid var(--pencil);border-bottom:1px solid var(--pencil);overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .2s;}
+.cal-day:hover{background:rgba(246,201,210,.16);}
 .cal-day.sun{color:var(--rose-deep);}
 .cal-day.sat{color:var(--blue);}
 .cal-day.other{opacity:.3;}
@@ -293,13 +291,10 @@ body.cover-on{overflow:hidden;}
   background:#FFFEFB;padding:6% 6% 0;border-radius:1px;
   box-shadow:0 2px 6px -2px rgba(60,45,30,.45),0 0 0 .5px rgba(94,74,54,.14);}
 .cal-pola img,.cal-pola-blank{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#E9E2D4;}
-.cal-pola-blank{background:
-  linear-gradient(45deg,transparent calc(50% - .5px),rgba(255,255,255,.75) calc(50% - .5px),rgba(255,255,255,.75) calc(50% + .5px),transparent calc(50% + .5px)),
-  linear-gradient(-45deg,transparent calc(50% - .5px),rgba(255,255,255,.75) calc(50% - .5px),rgba(255,255,255,.75) calc(50% + .5px),transparent calc(50% + .5px)),
-  #E6DFD1;}
-.cal-pola.empty{opacity:.42;box-shadow:0 1px 3px -1px rgba(60,45,30,.35),0 0 0 .5px rgba(94,74,54,.12);}
-.cal-day:hover .cal-pola.empty{opacity:.7;}
-.cal-day .cal-num{background:rgba(255,253,245,.9);box-shadow:0 0 0 1px rgba(94,74,54,.08);}
+.cal-pola-blank{background:#ECE5D7;}   /* 아직 안 찍은 즉석사진: 연한 회갈색 면만 */
+.cal-pola.empty{opacity:.32;box-shadow:0 1px 2px -1px rgba(60,45,30,.3),0 0 0 .5px rgba(94,74,54,.12);}
+.cal-day:hover .cal-pola.empty{opacity:.55;}
+.cal-day.has-photo .cal-num{background:rgba(255,253,245,.9);box-shadow:0 0 0 1px rgba(94,74,54,.08);}
 .cal-count{position:absolute;right:4px;bottom:4px;z-index:1;font-size:10.5px;font-family:var(--hand);color:var(--ink2);
   background:rgba(255,253,245,.9);border-radius:999px;padding:1px 6px;}
 
@@ -345,9 +340,9 @@ body.cover-on{overflow:hidden;}
   .cal-month{font-size:32px;}
   .cal-nav{width:30px;height:30px;font-size:20px;}
   .cal-month-en{font-size:10.5px;margin-top:4px;}
-  .cal-grid{gap:3px;}
+  .cal-grid{gap:0;}
   .cal-dow{font-size:12.5px;padding-bottom:4px;}
-  .cal-day{aspect-ratio:1/1.3;padding:4px 4px;font-size:13.5px;border-radius:5px;}
+  .cal-day{aspect-ratio:1/1.3;padding:4px 4px;font-size:13.5px;}
   .cal-pola{width:86%;top:54%;}
   .cal-num{min-width:20px;height:20px;margin:-3px -3px;}
   .cal-count{font-size:9.5px;padding:0 4px;right:2px;bottom:2px;}
