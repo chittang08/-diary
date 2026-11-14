@@ -430,9 +430,20 @@ body.cover-on{overflow:hidden;}
 .gate-btn.danger{color:var(--red);border-color:rgba(190,78,67,.5);margin-right:auto;}
 #album-new-form{display:flex;flex-direction:column;}
 #album-new-form input[type=text]{font-size:16px;}
-.cover-swatches{display:flex;gap:10px;margin:14px 0 16px;flex-wrap:wrap;}
-.swatch{width:30px;height:30px;border-radius:50%;border:2px solid rgba(0,0,0,0);background:var(--c);box-shadow:0 2px 5px -2px rgba(60,40,30,.5);transition:transform .15s;}
-.swatch.on{border-color:var(--ink);transform:scale(1.14);}
+/* 표지 색 고르기: 색마다 작은 책 모양으로 보여주고, 아래에 이름까지 붙은 큰 미리보기 */
+.cover-swatches{display:flex;gap:8px;margin:14px 0 12px;flex-wrap:wrap;}
+.swatch{position:relative;width:28px;height:38px;padding:0;border:2px solid rgba(0,0,0,0);border-radius:1px 5px 5px 1px;
+  background:linear-gradient(90deg,rgba(0,0,0,.3) 0,rgba(0,0,0,.07) 20%,rgba(0,0,0,0) 34%),var(--c);
+  box-shadow:0 2px 5px -2px rgba(60,40,30,.5);transition:transform .15s,box-shadow .15s;}
+.swatch::after{content:'';position:absolute;left:24%;right:20%;top:28%;height:20%;background:#FFFDF6;border-radius:1px;opacity:.95;}
+.swatch:hover{transform:translateY(-2px);}
+.swatch.on{border-color:var(--ink);transform:translateY(-3px);box-shadow:0 6px 10px -5px rgba(60,40,30,.6);}
+.album-preview{display:flex;align-items:center;gap:16px;margin:0 0 16px;padding:12px 14px;border:1px dashed var(--pencil);border-radius:8px;background:rgba(255,255,255,.35);}
+.album-preview .book-item{width:88px;flex:none;cursor:default;}
+.album-preview .book-item:hover{transform:none;box-shadow:0 0 0 1px rgba(60,40,40,.25),3px 3px 0 -1px #F0E5CF,3px 3px 0 0 rgba(94,74,54,.12),0 14px 22px -14px rgba(60,40,30,.6);}
+.album-preview .book-label.placeholder{color:rgba(75,51,46,.4);}
+.album-preview-text{font-family:var(--hand);font-size:14.5px;line-height:1.55;color:var(--ink2);}
+.album-preview-text b{font-size:16px;color:var(--ink);}
 @media(max-width:500px){
   .album-panel{padding:12px 10px 14px;}
   .album-title{font-size:23px;}
@@ -605,6 +616,10 @@ html,body{overscroll-behavior-y:contain;}
     <form id="album-new-form">
       <input id="album-new-title" type="text" maxlength="30" placeholder="앨범 이름 (예: 제주도 여행)" required autocomplete="off">
       <div class="cover-swatches" id="cover-swatches"></div>
+      <div class="album-preview">
+        <div class="book-item" id="album-preview-book" aria-hidden="true"><span class="book-label" id="album-preview-label"></span><span class="book-count">새 앨범</span></div>
+        <div class="album-preview-text"><b id="album-preview-name"></b><br>책장에 이렇게 꽂혀요</div>
+      </div>
       <button type="submit" class="gate-btn">만들기</button>
     </form>
     <div class="day-msg" id="album-new-msg"></div>
@@ -936,7 +951,9 @@ buildCalendar(new Date().getFullYear(),new Date().getMonth());
 
 // ===== 사진첩 (앨범) =====
 // albums 표 = 책장의 작은 책. 앨범 사진은 photos 표에 album_id + 위치(pos_x, pos_y: 페이지 너비 기준 비율) + 기울기(rot)로 저장.
-var ALBUM_COVERS={rose:'#BF6E7E',sage:'#6F9A82',butter:'#D9B35C',navy:'#4F6B8F',cocoa:'#8A6650',lilac:'#9B86B8'};
+var ALBUM_COVERS={rose:'#E0697F',cherry:'#D94452',coral:'#F4845F',butter:'#F2C14E',sage:'#7BBF8E',mint:'#5FC7B0',
+  sky:'#5BAEE8',navy:'#4A6FB5',lilac:'#B08BE3',pink:'#F48FB1',cocoa:'#9C7254',plum:'#9A4F7C'};
+var ALBUM_COVER_NAMES={rose:'로즈',cherry:'체리',coral:'코랄',butter:'버터',sage:'세이지',mint:'민트',sky:'하늘',navy:'네이비',lilac:'라일락',pink:'핑크',cocoa:'코코아',plum:'자두'};
 var albums=[],albumCounts={},openAlbum=null,albumPhotos=[];
 var placing=null;      // 지금 배치 중인 사진 {mode:'new'|'edit', el, x, y, rot, caption, blob?, photo?}
 var albumQueue=[];     // 여러 장을 골랐을 때 한 장씩 차례로 배치
@@ -1244,11 +1261,23 @@ function renderSwatches(){
   w.innerHTML='';
   Object.keys(ALBUM_COVERS).forEach(function(k){
     var b=document.createElement('button');
-    b.type='button';b.className='swatch'+(k===newCover?' on':'');b.style.setProperty('--c',ALBUM_COVERS[k]);b.setAttribute('aria-label',k+' 표지');
+    b.type='button';b.className='swatch'+(k===newCover?' on':'');b.style.setProperty('--c',ALBUM_COVERS[k]);
+    b.title=ALBUM_COVER_NAMES[k]||k;b.setAttribute('aria-label',(ALBUM_COVER_NAMES[k]||k)+' 표지');
     b.onclick=function(){newCover=k;renderSwatches();};
     w.appendChild(b);
   });
+  updateAlbumPreview();
 }
+// 고른 색 + 입력한 이름으로 책장에 꽂힐 모습 미리보기
+function updateAlbumPreview(){
+  var book=document.getElementById('album-preview-book');
+  book.style.setProperty('--c',ALBUM_COVERS[newCover]||ALBUM_COVERS.rose);
+  var t=(document.getElementById('album-new-title').value||'').trim();
+  document.getElementById('album-preview-label').textContent=t||'앨범 이름';
+  document.getElementById('album-preview-label').classList.toggle('placeholder',!t);
+  document.getElementById('album-preview-name').textContent=(ALBUM_COVER_NAMES[newCover]||newCover)+' 표지';
+}
+document.getElementById('album-new-title').addEventListener('input',updateAlbumPreview);
 document.getElementById('album-new').addEventListener('click',function(e){if(e.target===this) closeNewAlbum();});
 document.getElementById('album-new-form').addEventListener('submit',async function(e){
   e.preventDefault();

@@ -82,7 +82,7 @@ create table public.albums (
   id          uuid primary key default gen_random_uuid(),
   couple_id   uuid not null references public.couples(id) on delete cascade,
   title       text not null check (char_length(trim(title)) between 1 and 30),
-  cover       text not null default 'rose' check (cover in ('rose','sage','butter','navy','cocoa','lilac')),
+  cover       text not null default 'rose' check (cover in ('rose','cherry','coral','butter','sage','mint','sky','navy','lilac','pink','cocoa','plum')),
   sort        int  not null default 0,
   created_by  uuid default auth.uid() references auth.users(id) on delete set null,
   created_at  timestamptz not null default now()
