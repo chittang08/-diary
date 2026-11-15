@@ -503,6 +503,17 @@ button{cursor:pointer;font-family:var(--body);-webkit-tap-highlight-color:transp
 .chat-form input:focus{border-color:rgba(161,90,102,.6);}
 .chat-form button{flex-shrink:0;border:none;border-radius:999px;padding:0 16px;background:var(--rose-deep);font-size:15px;font-weight:600;color:#FFF7F0;}
 .chat-form :disabled{opacity:.5;cursor:default;}
+/* 새 메시지 알림: 컴퓨터는 오른쪽 아래, 손가락으로 쓰는 기기(휴대폰·태블릿)는 화면 위 */
+.chat-toast{position:fixed;z-index:9500;right:20px;bottom:20px;width:min(320px,calc(100vw - 32px));display:flex;flex-direction:column;gap:2px;padding:11px 16px;text-align:left;
+  border:1px solid rgba(161,90,102,.3);border-radius:14px;background:var(--paper2);box-shadow:0 10px 24px -12px rgba(46,41,37,.45);font-family:var(--body);color:var(--ink);
+  visibility:hidden;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s,visibility .2s;}
+.chat-toast.show{visibility:visible;opacity:1;transform:none;}
+.chat-toast b{font-size:13px;color:var(--rose-deep);}
+.chat-toast span{display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;font-size:14.5px;line-height:1.4;}
+@media(hover:none),(pointer:coarse){
+  .chat-toast{right:auto;bottom:auto;left:50%;top:calc(env(safe-area-inset-top) + 12px);width:min(420px,calc(100vw - 24px));transform:translate(-50%,-8px);}
+  .chat-toast.show{transform:translate(-50%,0);}
+}
 @media(max-width:500px){
   .chat{padding:12px 10px 10px;}
   .chat-list{height:calc(var(--book-h) - 290px);}   /* 휴대폰은 머리말이 짧아서 대화 칸을 더 길게 */
@@ -712,6 +723,7 @@ html,body{overscroll-behavior-y:contain;}
   <div class="photo-view-cap"></div>
 </div>
 
+<button type="button" class="chat-toast" id="chat-toast" onclick="openChatFromToast()" aria-live="polite"><b id="chat-toast-name"></b><span id="chat-toast-text"></span></button>
 <div id="pull-refresh" class="pull-refresh" aria-live="polite"><span class="pull-icon">↓</span><span class="pull-text">당겨서 새로고침</span></div>
 
 <!-- 로그인 · 커플 연결 (표지를 넘기면 다이어리 대신 먼저 보이는 페이지) -->
@@ -1412,9 +1424,28 @@ function chatAppend(m){
   t.textContent=at.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});
   row.appendChild(p);row.appendChild(t);box.appendChild(row);
 }
-function chatAdd(m){
-  if(chatMsgs.some(function(x){return x.id===m.id;})) return;   // 내가 보낸 건 보낸 직후와 실시간 알림으로 두 번 옴
+function chatAdd(m){   // 새로 넣었으면 true
+  if(chatMsgs.some(function(x){return x.id===m.id;})) return false;   // 내가 보낸 건 보낸 직후와 실시간 알림으로 두 번 옴
   chatMsgs.push(m);chatAppend(m);
+  return true;
+}
+// 새 메시지 알림 (위치는 CSS 가 기기에 맞춰 정함). 누르면 대화 창으로 감
+var chatToastTimer=null;
+function chatToastTimerStart(){   // 다른 탭을 보는 동안 온 알림은 돌아와서 볼 때까지 남겨 둠
+  clearTimeout(chatToastTimer);
+  if(document.visibilityState==='visible') chatToastTimer=setTimeout(function(){document.getElementById('chat-toast').classList.remove('show');},5000);
+}
+document.addEventListener('visibilitychange',chatToastTimerStart);
+function chatToast(m){
+  if(currentTab==='chat'&&!isCoverShown()&&document.visibilityState==='visible') return;   // 대화 창을 보고 있으면 목록에 바로 뜸
+  document.getElementById('chat-toast-name').textContent=nickOf(m.sender_id);
+  document.getElementById('chat-toast-text').textContent=m.body;
+  document.getElementById('chat-toast').classList.add('show');
+  chatToastTimerStart();
+}
+function openChatFromToast(){
+  document.getElementById('chat-toast').classList.remove('show');
+  if(isCoverShown()) openBook('chat'); else flipTo('chat');
 }
 function renderChat(){
   var box=document.getElementById('chat-msgs');
@@ -1429,7 +1460,7 @@ function chatListen(){
   if(chatChannel) sb.removeChannel(chatChannel);
   chatFor=id;
   chatChannel=id?sb.channel('chat-'+id)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'couple_id=eq.'+id},function(p){chatAdd(p.new);})
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'couple_id=eq.'+id},function(p){if(chatAdd(p.new)&&p.new.sender_id!==me.id) chatToast(p.new);})
     .subscribe():null;
 }
 // older=true 면 지금 보이는 것보다 옛날 대화를 위에 이어 붙임
