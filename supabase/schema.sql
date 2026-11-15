@@ -12,6 +12,7 @@
 --   routine_checks        : 날짜별로 누가 어떤 약속을 지켰는지
 --   photos                : 사진 정보 (파일은 Storage 'photos' 버킷에 저장). 날짜 사진 또는 앨범 사진
 --   albums                : 사진첩의 앨범(작은 책) 한 권
+--   messages              : 대화 페이지에서 둘이 주고받는 메시지 (고치기·지우기 없음)
 --   push_subscriptions    : 알림 받을 기기 (Web Push 구독 정보)
 --   couple_join_attempts  : 초대 코드 틀린 기록 (대입 공격 막기용, 아무도 직접 못 봄)
 --
@@ -106,6 +107,15 @@ create table public.photos (
 );
 create index photos_couple_date_idx on public.photos (couple_id, taken_on desc);
 create index photos_album_idx on public.photos (album_id) where album_id is not null;
+
+create table public.messages (
+  id          uuid primary key default gen_random_uuid(),
+  couple_id   uuid not null references public.couples(id) on delete cascade,
+  sender_id   uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  body        text not null check (char_length(body) <= 1000 and length(trim(body)) > 0),
+  created_at  timestamptz not null default now()
+);
+create index messages_couple_time_idx on public.messages (couple_id, created_at desc);
 
 create table public.push_subscriptions (
   id          uuid primary key default gen_random_uuid(),
@@ -324,6 +334,10 @@ grant update (title, cover, sort)          on public.albums             to authe
 grant update (name, sort)                  on public.routines           to authenticated;
 grant update (p256dh, auth)                on public.push_subscriptions to authenticated;
 
+-- 메시지는 읽기와 보내기만. 보낼 때는 커플·내용만 정할 수 있어서 보낸 사람·시간은 서버가 채움 (위조 불가)
+revoke insert, update, delete on public.messages from authenticated;
+grant insert (couple_id, body) on public.messages to authenticated;
+
 -- 함수는 기본으로 누구나 부를 수 있으므로 필요한 것만 로그인한 사람에게 열어 줌
 revoke execute on function public.create_couple()          from public, anon;
 revoke execute on function public.join_couple(text)        from public, anon;
@@ -353,6 +367,7 @@ alter table public.routines             enable row level security;
 alter table public.routine_checks       enable row level security;
 alter table public.push_subscriptions   enable row level security;
 alter table public.albums               enable row level security;
+alter table public.messages             enable row level security;
 alter table public.couple_join_attempts enable row level security;   -- 규칙 없음 = 함수 말고는 아무도 못 봄
 
 -- profiles: 나와 내 짝꿍 것만 보기, 내 것만 수정
@@ -427,6 +442,13 @@ create policy "albums: 커플이 수정" on public.albums
 create policy "albums: 커플이 삭제" on public.albums
   for delete to authenticated using (couple_id = public.my_couple_id());
 
+-- messages: 둘 다 보기, 보내기는 자기 이름으로만
+create policy "messages: 커플이 보기" on public.messages
+  for select to authenticated using (couple_id = public.my_couple_id());
+create policy "messages: 내가 보내기" on public.messages
+  for insert to authenticated
+  with check (couple_id = public.my_couple_id() and sender_id = auth.uid());
+
 -- photos: 둘 다 보기, 올린 사람만 수정·삭제. 경로는 우리 커플 폴더만, 연결 기록·앨범도 우리 커플 것만
 create policy "photos: 커플이 보기" on public.photos
   for select to authenticated using (couple_id = public.my_couple_id());
@@ -487,7 +509,7 @@ create policy "storage: 내 사진 파일 삭제" on storage.objects   -- 파일
 do $$
 declare t text;
 begin
-  foreach t in array array['couple_members', 'entries', 'photos'] loop
+  foreach t in array array['couple_members', 'entries', 'photos', 'messages'] loop
     if not exists (
       select 1 from pg_publication_tables
       where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t

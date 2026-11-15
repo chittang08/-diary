@@ -25,7 +25,7 @@
   --bg:#FCF6E8;--bg2:#FFFDF5;--bg3:#F2E8D5;--border:rgba(70,55,42,0.12);
   --desk:#E7DBC6;--paper:#FCF6E8;--paper2:#FFFCF3;
   --cover:#BC5E6B;--cover-ink:#8E3F49;--band:#F8EFDC;
-  --tab1:#F6C9D2;--tab2:#F6E3B4;--rose:#BF6E7E;--rose-deep:#A15A66;
+  --tab1:#F6C9D2;--tab2:#F6E3B4;--tab3:#CDE1F0;--rose:#BF6E7E;--rose-deep:#A15A66;
   --hand:'Gaegu','Pretendard Variable',system-ui,sans-serif;
   --body:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo',sans-serif;
   /* 종이 섬유 질감 */
@@ -263,7 +263,7 @@ body.cover-on{overflow:hidden;}
   background:var(--grain-paper),linear-gradient(180deg,#FBF5E7 0%,#F6EEDC 100%);
   box-shadow:0 1px 2px rgba(70,52,36,.1),0 10px 20px -16px rgba(70,52,36,.55);
   transform:rotate(1deg) translate(5px,6px);}
-.calendar,.album-panel{position:relative;margin:0;padding:18px 16px 16px;border-radius:2px;border:1px solid var(--pencil);
+.calendar,.album-panel,.chat{position:relative;margin:0;padding:18px 16px 16px;border-radius:2px;border:1px solid var(--pencil);
   background:
     var(--grain-paper),
     var(--crumple),
@@ -272,7 +272,7 @@ body.cover-on{overflow:hidden;}
   background-blend-mode:normal,multiply,normal;
   box-shadow:0 1px 2px rgba(70,52,36,.12),0 8px 18px -16px rgba(70,52,36,.45);
   transform:rotate(-.45deg);}
-.calendar::before,.album-panel::before{content:'';position:absolute;top:-1px;right:-1px;width:0;height:0;border-style:solid;border-width:0 26px 26px 0;
+.calendar::before,.album-panel::before,.chat::before{content:'';position:absolute;top:-1px;right:-1px;width:0;height:0;border-style:solid;border-width:0 26px 26px 0;
   border-color:#FCF6E8 #FCF6E8 #EFE5D1 #EFE5D1;   /* 위·오른쪽은 밑 종이색, 아래·왼쪽은 접힌 면 */
   filter:drop-shadow(-1px 1px 1px rgba(70,52,36,.22));pointer-events:none;z-index:1;}
 .cal-head{position:relative;text-align:center;padding:6px 0 16px;}
@@ -483,6 +483,32 @@ body.cover-on{overflow:hidden;}
 .page-foot{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:22px;font-family:var(--hand);font-size:17px;color:var(--ink3);user-select:none;}
 button{cursor:pointer;font-family:var(--body);-webkit-tap-highlight-color:transparent;}
 
+/* ===== 대화 (짝꿍과 실시간 채팅) — 이 페이지만 손글씨 대신 고딕체 ===== */
+.chat{padding:16px 16px 14px;font-family:var(--body);}
+.chat-head{display:flex;align-items:center;gap:7px;padding:2px 2px 12px;border-bottom:1px solid var(--pencil);font-size:17px;font-weight:700;color:var(--ink);}
+.chat-head::before{content:'♥';font-size:13px;color:var(--rose);}
+/* column-reverse: 스크롤이 맨 아래(최근 대화)에서 시작하고, 새 메시지가 와도 아래에 붙어 있음 */
+.chat-list{display:flex;flex-direction:column-reverse;height:calc(var(--book-h) - 400px);min-height:200px;overflow-y:auto;overscroll-behavior:contain;padding:12px 2px;}
+.chat-msgs{display:flex;flex-direction:column;gap:6px;}
+.chat-msgs:empty::before{content:'아직 대화가 없어요. 먼저 말을 걸어 보세요';align-self:center;padding:24px 0;font-size:14px;color:var(--ink2);}
+.chat-day,.chat-more{align-self:center;margin:8px 0 4px;font-size:12px;color:var(--ink2);}
+.chat-more{border:none;background:none;padding:4px 8px;text-decoration:underline;text-underline-offset:3px;}
+.chat-msg{display:flex;align-items:flex-end;gap:6px;max-width:84%;}
+.chat-msg p{padding:8px 12px;border-radius:14px 14px 14px 4px;border:1px solid var(--pencil);background:#FFFDF6;font-size:15px;line-height:1.45;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere;}
+.chat-msg time{flex-shrink:0;padding-bottom:2px;font-size:11px;color:var(--ink2);}
+.chat-msg.mine{align-self:flex-end;flex-direction:row-reverse;}
+.chat-msg.mine p{border-radius:14px 14px 4px 14px;border-color:rgba(191,110,126,.3);background:#F9DCE2;}
+.chat-form{display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--pencil);}
+.chat-form input{flex:1;min-width:0;border:1px solid rgba(70,55,42,.22);border-radius:999px;padding:9px 14px;background:#FFFDF6;font:16px var(--body);color:var(--ink);outline:none;}
+.chat-form input:focus{border-color:rgba(161,90,102,.6);}
+.chat-form button{flex-shrink:0;border:none;border-radius:999px;padding:0 16px;background:var(--rose-deep);font-size:15px;font-weight:600;color:#FFF7F0;}
+.chat-form :disabled{opacity:.5;cursor:default;}
+@media(max-width:500px){
+  .chat{padding:12px 10px 10px;}
+  .chat-list{height:calc(var(--book-h) - 290px);}   /* 휴대폰은 머리말이 짧아서 대화 칸을 더 길게 */
+  .chat-msg p{font-size:14.5px;}
+}
+
 /* ===== 당겨서 새로고침 ===== */
 html,body{overscroll-behavior-y:contain;}
 .pull-refresh{position:fixed;top:10px;left:50%;z-index:60;transform:translate(-50%,-70px);display:flex;align-items:center;gap:8px;
@@ -521,6 +547,7 @@ html,body{overscroll-behavior-y:contain;}
       <div class="cover-tabs">
         <button class="bookmark" style="--c:var(--tab1)" onclick="event.stopPropagation();openBook('calendar')">캘린더</button>
         <button class="bookmark" style="--c:var(--tab2)" onclick="event.stopPropagation();openBook('album')">사진첩</button>
+        <button class="bookmark" style="--c:var(--tab3)" onclick="event.stopPropagation();openBook('chat')">대화</button>
       </div>
     </div>
   </div>
@@ -533,6 +560,7 @@ html,body{overscroll-behavior-y:contain;}
   <nav class="bookmarks">
     <button class="bookmark active" data-tab="calendar" style="--c:var(--tab1)" onclick="flipTo('calendar')">캘린더</button>
     <button class="bookmark" data-tab="album" style="--c:var(--tab2)" onclick="flipTo('album')">사진첩</button>
+    <button class="bookmark" data-tab="chat" style="--c:var(--tab3)" onclick="flipTo('chat')">대화</button>
   </nav>
   <div class="paper">
   <div class="header">
@@ -602,8 +630,25 @@ html,body{overscroll-behavior-y:contain;}
     </div>
   </div>
 
+  <!-- 대화: 짝꿍과 실시간 채팅 (맨 위에 짝꿍 이름) -->
+  <div id="tab-chat" class="page" inert>
+    <div class="sheet-wrap">
+    <section class="chat" aria-label="대화">
+      <div class="chat-head" id="chat-partner"></div>
+      <div class="chat-list" tabindex="0" aria-label="대화 내용">
+        <div class="chat-msgs" id="chat-msgs" role="log"></div>
+        <button type="button" class="chat-more" id="chat-more" onclick="loadChat(true)" hidden>이전 대화 더 보기</button>
+      </div>
+      <form class="chat-form" id="chat-form">
+        <input id="chat-input" type="text" maxlength="1000" placeholder="메시지 보내기" aria-label="메시지" autocomplete="off" enterkeyhint="send">
+        <button type="submit">보내기</button>
+      </form>
+    </section>
+    </div>
   </div>
-  <div class="page-foot"><span>‹</span><span id="page-num">1 / 2</span><span>›</span></div>
+
+  </div>
+  <div class="page-foot"><span>‹</span><span id="page-num">1 / 3</span><span>›</span></div>
   <button type="button" class="gate-link account-delete" id="btn-delete" onclick="deleteAccount()" hidden>탈퇴하기</button>
   </div>
  </div>
@@ -1346,8 +1391,79 @@ async function deleteAlbum(){
   try{await loadAlbums();}catch(e){console.error(e);}
 }
 
+// ===== 대화 (짝꿍과 실시간 채팅) =====
+// 다른 페이지는 당겨서 새로고침이지만, 대화만은 짝꿍이 보낸 메시지가 바로 뜨도록 실시간으로 받음
+var CHAT_PAGE=100;     // 한 번에 불러오는 메시지 수
+var chatMsgs=[];       // 화면에 있는 메시지 (오래된 것부터)
+var chatChannel=null,chatFor=null;   // 실시간 연결과, 그 연결이 듣고 있는 커플 id
+
+function chatAppend(m){
+  var box=document.getElementById('chat-msgs'),at=new Date(m.created_at),day=at.toDateString();
+  if(box.dataset.day!==day){   // 날짜가 바뀌면 날짜 줄을 먼저 넣음
+    box.dataset.day=day;
+    var d=document.createElement('div');
+    d.className='chat-day';
+    d.textContent=at.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+    box.appendChild(d);
+  }
+  var row=document.createElement('div'),p=document.createElement('p'),t=document.createElement('time');
+  row.className='chat-msg'+(m.sender_id===me.id?' mine':'');
+  p.textContent=m.body;   // textContent: 메시지에 든 태그가 실행되지 않게
+  t.textContent=at.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});
+  row.appendChild(p);row.appendChild(t);box.appendChild(row);
+}
+function chatAdd(m){
+  if(chatMsgs.some(function(x){return x.id===m.id;})) return;   // 내가 보낸 건 보낸 직후와 실시간 알림으로 두 번 옴
+  chatMsgs.push(m);chatAppend(m);
+}
+function renderChat(){
+  var box=document.getElementById('chat-msgs');
+  box.textContent='';delete box.dataset.day;
+  chatMsgs.forEach(chatAppend);
+  document.getElementById('chat-partner').textContent=partner?(partner.nickname||'짝꿍'):'짝꿍을 기다리는 중';
+  document.querySelectorAll('#chat-form input,#chat-form button').forEach(function(el){el.disabled=!partner;});
+}
+function chatListen(){
+  var id=couple?couple.id:null;
+  if(id===chatFor) return;
+  if(chatChannel) sb.removeChannel(chatChannel);
+  chatFor=id;
+  chatChannel=id?sb.channel('chat-'+id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'couple_id=eq.'+id},function(p){chatAdd(p.new);})
+    .subscribe():null;
+}
+// older=true 면 지금 보이는 것보다 옛날 대화를 위에 이어 붙임
+async function loadChat(older){
+  var got=[];
+  if(sb&&me&&couple){
+    var q=sb.from('messages').select('id,sender_id,body,created_at').eq('couple_id',couple.id).order('created_at',{ascending:false}).limit(CHAT_PAGE);
+    if(older&&chatMsgs.length) q=q.lt('created_at',chatMsgs[0].created_at);
+    var r=await q;
+    if(r.error){console.error('chat:',r.error);return;}   // 대화를 못 불러와도 다이어리는 그대로 쓸 수 있게
+    got=r.data.reverse();
+  }
+  chatMsgs=older?got.concat(chatMsgs):got;
+  document.getElementById('chat-more').hidden=got.length<CHAT_PAGE;
+  renderChat();
+  if(sb) chatListen();
+}
+document.getElementById('chat-form').addEventListener('submit',async function(e){
+  e.preventDefault();
+  var input=document.getElementById('chat-input'),body=input.value.trim();
+  if(!body||!couple||!partner) return;
+  input.value='';
+  var r=await sb.from('messages').insert({couple_id:couple.id,body:body}).select('id,sender_id,body,created_at').single();
+  if(r.error){
+    console.error('chat send:',r.error);
+    if(!input.value) input.value=body;   // 못 보낸 글은 다시 돌려줌
+    alert('보내지 못했어요. 다시 해주세요.');
+    return;
+  }
+  chatAdd(r.data);
+});
+
 // ===== 탭 =====
-var PAGE_ORDER=['calendar','album'];
+var PAGE_ORDER=['calendar','album','chat'];
 var currentTab='calendar';
 
 function showTab(name){
@@ -1476,7 +1592,7 @@ function goPrev(){
   if(i>0) flipTo(PAGE_ORDER[i-1]);
   else closeBook();
 }
-var TAP_IGNORE='button,input,textarea,select,a,label,[onclick],.bookmark,.cal-grid,.day-sheet,.photo-view,.album-panel,.place-bar';
+var TAP_IGNORE='button,input,textarea,select,a,label,[onclick],.bookmark,.cal-grid,.day-sheet,.photo-view,.album-panel,.chat,.place-bar';
 function isGateShown(){return !document.getElementById('gate').hidden;}
 function isOverlayShown(){return !document.getElementById('day-sheet').hidden||!document.getElementById('photo-view').hidden||!document.getElementById('album-new').hidden||!document.getElementById('ask').hidden||!!placing;}
 document.addEventListener('click',function(e){
@@ -1613,6 +1729,7 @@ async function refreshSession(session){
     if(me) await loadCouple(); else {couple=null;partner=null;myProfile=null;}
     await loadMonthPhotos();
     await loadAlbums();
+    await loadChat();
     renderGate();
   }catch(err){
     document.getElementById('gate-error-msg').textContent='기록을 불러오지 못했어요. 잠시 후 새로고침해 주세요.';
@@ -1739,7 +1856,7 @@ async function signOut(){
 
 // ===== 당겨서 새로고침 =====
 // 짝꿍이 바꾼 내용은 화면을 위로 당기면(새로고침) 서버에서 다시 받아온다.
-// (실시간으로 서로 화면을 밀어 넣는 방식은 쓰지 않음)
+// (실시간으로 서로 화면을 밀어 넣는 방식은 쓰지 않음 — 대화 페이지만 예외)
 
 // 서버에서 최신 상태(짝꿍 연결 여부 + 다이어리 내용)를 다시 받아옴
 var refreshing=false;
@@ -1750,6 +1867,7 @@ async function refreshFromServer(){
     await loadCouple();
     await loadMonthPhotos();
     await loadAlbums();
+    await loadChat();   // 화면을 꺼 둔 사이에 온 메시지도 여기서 다시 받아옴
     renderGate();
     return true;
   }catch(err){
@@ -1793,7 +1911,7 @@ function canPullRefresh(){
 // 휴대폰·태블릿: 맨 위에서 아래로 끌어당겼다 놓기
 var pullStartY=null,pullDist=0;
 document.addEventListener('touchstart',function(e){
-  if(!canPullRefresh()||!atTop()||e.touches.length!==1){pullStartY=null;return;}
+  if(!canPullRefresh()||!atTop()||e.touches.length!==1||e.target.closest('.chat-list')){pullStartY=null;return;}   // 대화 목록 안에서는 옛 대화로 올라가는 스크롤
   pullStartY=e.touches[0].clientY;pullDist=0;
 },{passive:true});
 document.addEventListener('touchmove',function(e){
@@ -1812,7 +1930,7 @@ document.addEventListener('touchend',function(){
 // 컴퓨터: 맨 위에서 마우스 휠을 한 번 더 위로 굴리기
 var wheelPull=0,wheelTimer=null;
 window.addEventListener('wheel',function(e){
-  if(!canPullRefresh()||!atTop()||e.deltaY>=0){wheelPull=0;return;}
+  if(!canPullRefresh()||!atTop()||e.deltaY>=0||e.target.closest('.chat-list')){wheelPull=0;return;}
   wheelPull+=-e.deltaY;
   clearTimeout(wheelTimer);
   wheelTimer=setTimeout(function(){wheelPull=0;if(!refreshing)setPull('');},400);
