@@ -9,6 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#E6DCCB">
 <title>다이어리</title>
+<link rel="manifest" href="manifest.json">   <!-- 홈 화면에 추가하면 앱처럼 열림 (아이폰·아이패드는 이래야 푸시 알림을 받음) -->
 <!-- 보안: 정해진 곳(우리 Supabase, 글꼴 CDN)과만 통신하고, 다른 곳의 스크립트는 못 돌게 -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data: blob: https://tzkygyodhfspoxoqoscn.supabase.co; connect-src 'self' https://tzkygyodhfspoxoqoscn.supabase.co wss://tzkygyodhfspoxoqoscn.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -487,6 +488,9 @@ button{cursor:pointer;font-family:var(--body);-webkit-tap-highlight-color:transp
 .chat{padding:16px 16px 14px;font-family:var(--body);}
 .chat-head{display:flex;align-items:center;gap:7px;padding:2px 2px 12px;border-bottom:1px solid var(--pencil);font-size:17px;font-weight:700;color:var(--ink);}
 .chat-head::before{content:'♥';font-size:13px;color:var(--rose);}
+.chat-head span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chat-bell{flex-shrink:0;margin-right:16px;border:1px solid rgba(70,55,42,.22);border-radius:999px;padding:4px 10px;background:#FFFDF6;font-size:12.5px;font-weight:500;color:var(--ink2);}
+.chat-bell:disabled{border-color:transparent;background:none;cursor:default;}
 /* column-reverse: 스크롤이 맨 아래(최근 대화)에서 시작하고, 새 메시지가 와도 아래에 붙어 있음 */
 .chat-list{display:flex;flex-direction:column-reverse;height:calc(var(--book-h) - 400px);min-height:200px;overflow-y:auto;overscroll-behavior:contain;padding:12px 2px;}
 .chat-msgs{display:flex;flex-direction:column;gap:6px;}
@@ -645,7 +649,7 @@ html,body{overscroll-behavior-y:contain;}
   <div id="tab-chat" class="page" inert>
     <div class="sheet-wrap">
     <section class="chat" aria-label="대화">
-      <div class="chat-head" id="chat-partner"></div>
+      <div class="chat-head"><span id="chat-partner"></span><button type="button" class="chat-bell" id="chat-bell" onclick="bellClick()">🔔 알림 켜기</button></div>
       <div class="chat-list" tabindex="0" aria-label="대화 내용">
         <div class="chat-msgs" id="chat-msgs" role="log"></div>
         <button type="button" class="chat-more" id="chat-more" onclick="loadChat(true)" hidden>이전 대화 더 보기</button>
@@ -1438,6 +1442,7 @@ function chatToastTimerStart(){   // 다른 탭을 보는 동안 온 알림은 �
 document.addEventListener('visibilitychange',chatToastTimerStart);
 function chatToast(m){
   if(currentTab==='chat'&&!isCoverShown()&&document.visibilityState==='visible') return;   // 대화 창을 보고 있으면 목록에 바로 뜸
+  if(pushOn&&(PUSH_ALWAYS||!document.hasFocus())) return;   // 이럴 땐 기기 알림(푸시)이 대신 뜸
   document.getElementById('chat-toast-name').textContent=nickOf(m.sender_id);
   document.getElementById('chat-toast-text').textContent=m.body;
   document.getElementById('chat-toast').classList.add('show');
@@ -1491,7 +1496,67 @@ document.getElementById('chat-form').addEventListener('submit',async function(e)
     return;
   }
   chatAdd(r.data);
+  // 짝꿍 기기로 푸시 알림을 보내 달라고 서버에 부탁 (실패해도 메시지는 이미 보내졌음)
+  sb.functions.invoke('notify-message',{body:{message_id:r.data.id}}).then(function(x){if(x.error) console.error('push:',x.error);});
 });
+
+// ===== 푸시 알림 (다이어리를 꺼 놔도 새 메시지를 알려 줌) =====
+// 사파리(아이폰·아이패드)는 푸시가 올 때마다 꼭 기기 알림을 띄워야 해서, 화면 안 알림과 겹치지 않게 따로 구분함 (sw.js 와 같은 식)
+var PUSH_ALWAYS=/AppleWebKit/.test(navigator.userAgent)&&!/Chrome|Android/.test(navigator.userAgent);
+var pushOn=false;   // 이 기기가 푸시 알림을 받도록 등록돼 있는지
+function pushSupported(){return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;}
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(function(e){console.error('sw:',e);});
+  navigator.serviceWorker.addEventListener('message',function(e){if(e.data==='open-chat') openChatFromToast();});   // 기기 알림을 눌렀을 때
+}
+function b64ToBytes(s){   // 서버가 준 공개 열쇠(base64url)를 브라우저가 받는 모양으로
+  var raw=atob(s.replace(/-/g,'+').replace(/_/g,'/'));
+  return Uint8Array.from(raw,function(ch){return ch.charCodeAt(0);});
+}
+function renderBell(){
+  var b=document.getElementById('chat-bell'),denied=pushSupported()&&Notification.permission==='denied';
+  b.textContent=pushOn?'🔔 알림 켜짐':denied?'🔕 알림 꺼짐':'🔔 알림 켜기';
+  b.disabled=pushOn;
+}
+// ask=true: 버튼을 눌렀을 때만 허락 창을 띄움. 이미 허락한 기기는 들어올 때마다 조용히 다시 등록
+async function pushSync(ask){
+  pushOn=false;
+  try{
+    if(sb&&me&&pushSupported()){
+      if(ask&&Notification.permission==='default') await Notification.requestPermission();
+      if(Notification.permission==='granted'){
+        var reg=await navigator.serviceWorker.ready;
+        var sub=await reg.pushManager.getSubscription();
+        if(!sub){
+          var k=await sb.functions.invoke('notify-message',{body:{}});
+          if(k.error) throw k.error;
+          sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToBytes(k.data.publicKey)});
+        }
+        var j=sub.toJSON();
+        var r=await sb.rpc('save_push_subscription',{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth});
+        if(r.error) throw r.error;
+        pushOn=true;
+      }
+    }
+  }catch(e){
+    console.error('push:',e);
+    if(ask) alert('알림을 켜지 못했어요. 잠시 후 다시 해주세요.');
+  }
+  renderBell();
+}
+function bellClick(){
+  if(!pushSupported()) alert('이 브라우저에서는 다이어리를 꺼 뒀을 때 알림을 받을 수 없어요.\n아이폰·아이패드는 공유 버튼 → "홈 화면에 추가"로 설치한 다음, 홈 화면의 다이어리에서 다시 눌러 주세요.');
+  else if(Notification.permission==='denied') alert('알림이 차단돼 있어요. 브라우저(또는 기기) 설정에서 이 사이트의 알림을 허용해 주세요.');
+  else pushSync(true);
+}
+// 로그아웃하면 이 기기로는 더 이상 알림이 안 오게 등록을 지움
+async function pushForget(){
+  try{
+    var reg=pushSupported()&&await navigator.serviceWorker.getRegistration();
+    var sub=reg&&await reg.pushManager.getSubscription();
+    if(sub) await sb.from('push_subscriptions').delete().eq('endpoint',sub.endpoint);
+  }catch(e){console.error('push forget:',e);}
+}
 
 // ===== 탭 =====
 var PAGE_ORDER=['calendar','album','chat'];
@@ -1761,6 +1826,7 @@ async function refreshSession(session){
     await loadMonthPhotos();
     await loadAlbums();
     await loadChat();
+    pushSync();   // 기다리지 않음: 알림 등록이 늦거나 실패해도 다이어리는 바로 열림
     renderGate();
   }catch(err){
     document.getElementById('gate-error-msg').textContent='기록을 불러오지 못했어요. 잠시 후 새로고침해 주세요.';
@@ -1879,6 +1945,7 @@ async function deleteAccount(){
 }
 
 async function signOut(){
+  if(sb&&me) await pushForget();
   if(sb) await sb.auth.signOut();
   justCreated=false;
   setAuthMode('login');
@@ -1974,6 +2041,7 @@ document.addEventListener('visibilitychange',function(){
   if(document.visibilityState==='visible'&&me&&couple) refreshFromServer();
 });
 
+if(location.hash==='#chat') openBook('chat');   // 기기 알림을 눌러서 새로 열렸을 때는 바로 대화 창으로
 if(sb){
   sb.auth.getSession().then(function(r){refreshSession(r.data.session);});
   sb.auth.onAuthStateChange(function(event,session){

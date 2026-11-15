@@ -1,0 +1,9 @@
+{
+  "name": "다이어리",
+  "short_name": "다이어리",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#E7DBC6",
+  "theme_color": "#E6DCCB"
+}

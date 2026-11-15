@@ -14,6 +14,7 @@
 --   albums                : 사진첩의 앨범(작은 책) 한 권
 --   messages              : 대화 페이지에서 둘이 주고받는 메시지 (고치기·지우기 없음)
 --   push_subscriptions    : 알림 받을 기기 (Web Push 구독 정보)
+--   push_keys             : 푸시 알림용 열쇠 한 쌍 (알림 보내는 서버 함수 functions/notify-message 만 읽고 씀)
 --   couple_join_attempts  : 초대 코드 틀린 기록 (대입 공격 막기용, 아무도 직접 못 봄)
 --
 -- 보안
@@ -125,6 +126,12 @@ create table public.push_subscriptions (
   auth        text not null,
   created_at  timestamptz not null default now(),
   check (char_length(p256dh) <= 200 and char_length(auth) <= 100)
+);
+
+create table public.push_keys (
+  id           boolean primary key default true check (id),   -- 항상 한 줄만
+  public_key   text not null,
+  private_key  text not null
 );
 
 create table public.couple_join_attempts (
@@ -312,6 +319,23 @@ end
 $$;
 
 
+-- 이 기기를 내 알림 기기로 등록. 같은 기기에 다른 사람이 로그인하면 그 사람 것으로 바뀜
+create or replace function public.save_push_subscription(p_endpoint text, p_p256dh text, p_auth text)
+returns void
+language plpgsql security definer set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception '로그인이 필요해요';
+  end if;
+  insert into public.push_subscriptions (user_id, endpoint, p256dh, auth)
+  values (auth.uid(), p_endpoint, p_p256dh, p_auth)
+  on conflict (endpoint) do update
+    set user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth;
+end
+$$;
+
+
 -- ---------- 권한 (누가 무엇을 할 수 있나) ----------
 
 -- 로그인 안 한 사람(anon)은 테이블에 아예 손 못 댐. 로그인한 사람도 TRUNCATE 등 위험 권한 제거
@@ -323,6 +347,7 @@ alter default privileges in schema public revoke all on tables from anon;
 revoke insert, delete on public.couples, public.couple_members, public.profiles from authenticated;
 revoke update on public.couple_members from authenticated;
 revoke all on public.couple_join_attempts from anon, authenticated;
+revoke all on public.push_keys from anon, authenticated;
 
 -- 수정은 바꿔도 되는 칸만
 revoke update on public.couples, public.profiles, public.entries, public.photos, public.routines, public.push_subscriptions, public.albums from authenticated;
@@ -345,6 +370,8 @@ revoke execute on function public.my_couple_id()           from public, anon;
 revoke execute on function public.couple_check_days(date)  from public, anon;
 revoke execute on function public.delete_my_account()      from public, anon;
 grant  execute on function public.delete_my_account()      to authenticated;
+revoke execute on function public.save_push_subscription(text, text, text) from public, anon;
+grant  execute on function public.save_push_subscription(text, text, text) to authenticated;
 grant  execute on function public.create_couple()          to authenticated;
 grant  execute on function public.join_couple(text)        to authenticated;
 grant  execute on function public.my_couple_id()           to authenticated;   -- RLS 규칙 안에서 쓰임
@@ -369,6 +396,7 @@ alter table public.push_subscriptions   enable row level security;
 alter table public.albums               enable row level security;
 alter table public.messages             enable row level security;
 alter table public.couple_join_attempts enable row level security;   -- 규칙 없음 = 함수 말고는 아무도 못 봄
+alter table public.push_keys            enable row level security;   -- 규칙 없음 = 서버 함수 말고는 아무도 못 봄
 
 -- profiles: 나와 내 짝꿍 것만 보기, 내 것만 수정
 create policy "profiles: 나와 짝꿍 보기" on public.profiles
