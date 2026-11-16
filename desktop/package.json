@@ -1,0 +1,9 @@
+{
+  "name": "diary-desktop",
+  "productName": "다이어리",
+  "version": "1.0.0",
+  "private": true,
+  "description": "다이어리를 창 테두리 없이 책만 띄우는 컴퓨터용 껍데기",
+  "main": "main.js",
+  "scripts": { "start": "electron ." }
+}

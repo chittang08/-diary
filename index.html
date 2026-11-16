@@ -563,10 +563,32 @@ html,body{overscroll-behavior-y:contain;}
 .shell .edge-nav.prev{left:20px;width:30px;}
 .shell .edge-nav.next{right:0;width:26px;border-radius:0 10px 10px 0;}
 .shell .edge-nav:hover,.shell .edge-nav:focus-visible{color:rgba(70,55,42,.7);background-color:rgba(70,55,42,.06);}
+
+/* ===== 전용 프로그램 (desktop/main.js, 테두리 없는 투명 창): 책상 배경까지 없애서 책만 화면에 떠 있게 ===== */
+.float{--book-h:calc(100vh - 54px);}
+.float body,.float .cover-screen,.float .gate{background:none;}
+.float .container{padding:10px 50px 44px 24px;}   /* 아래는 책 그림자가 잘리지 않을 만큼 (desktop/main.js 의 창 크기 계산과 같은 숫자) */
+.float body:has(#gate:not([hidden]))>.container{visibility:hidden;}   /* 로그인 화면이 뜨면 뒤의 빈 책은 숨김 (가려 줄 배경이 없으니) */
+.float body.cover-on>.container{visibility:hidden;transition:visibility 0s .9s;}   /* 표지가 덮여 있을 땐 속지의 스프링·책갈피가 표지 옆으로 비치지 않게 (덮이는 동안은 보이다가 다 덮이면 숨김) */
+.float .day-sheet,.float .photo-view{inset:10px 50px 44px 24px;border-radius:3px 10px 10px 3px;}   /* 어둡게 깔리는 막은 책 크기로만 */
+.float .place-bar{bottom:58px;}
+.float .chat-toast{right:62px;bottom:56px;}
+.float .chat-bell{display:none;}   /* 이 프로그램 안에서는 푸시 알림을 못 받음 */
+/* 창 테두리가 없으니: 스프링이나 제목 쪽을 잡고 끌면 창이 움직이고, 오른쪽 위 ✕ 로 닫음 */
+.float .spiral,.float .cover-spiral,.float .header>div:first-child{-webkit-app-region:drag;pointer-events:auto;}
+.float .header .code{-webkit-app-region:no-drag;}
+.shell-close{display:none;}
+.float .shell-close{display:block;position:fixed;z-index:9700;top:10px;right:11px;width:28px;height:28px;border:1px solid rgba(70,55,42,.25);border-radius:50%;
+  background:var(--paper2);font-size:13px;line-height:1;color:var(--ink2);box-shadow:0 3px 8px -4px rgba(46,41,37,.5);-webkit-app-region:no-drag;}
+.float .shell-close:hover{color:var(--red);border-color:rgba(190,78,67,.5);}
 </style>
 <script>
-// 컴퓨터용 앱 창으로 열렸으면 책만 보이는 모양으로 바꾸고, 창 너비를 책에 맞춤 (크기 조절은 앱 창에서만 되고 보통 탭에서는 무시됨)
-if(new URLSearchParams(location.search).has('shell')){
+// 컴퓨터용 앱 창이면 책만 보이는 모양으로 바꿈.
+//   전용 프로그램(Electron, 테두리 없는 투명 창) → .shell + .float
+//   크롬 앱 창(주소에 ?shell=1)               → .shell, 그리고 창 너비를 책에 맞춤 (크기 조절은 앱 창에서만 되고 보통 탭에서는 무시됨)
+var IS_FLOAT=/Electron/.test(navigator.userAgent);
+if(IS_FLOAT) document.documentElement.classList.add('shell','float');
+else if(new URLSearchParams(location.search).has('shell')){
   document.documentElement.classList.add('shell');
   addEventListener('load',function(){
     var need=Math.min(880,Math.round((innerHeight-34)*0.74))+74;   // 책 너비 + 양옆 여백 (.shell .container 와 같은 숫자)
@@ -765,6 +787,8 @@ if(new URLSearchParams(location.search).has('shell')){
   <div class="photo-view-cap"></div>
 </div>
 
+<!-- 전용 프로그램(테두리 없는 창)에서만 보이는 닫기 버튼 -->
+<button type="button" class="shell-close" onclick="window.close()" aria-label="다이어리 닫기" title="닫기">✕</button>
 <!-- 이 기기에서 처음 한 번: 알림을 켤지 물어보는 창 -->
 <div class="push-ask" id="push-ask" hidden>
   <div class="push-ask-card" id="push-ask-card" role="alertdialog" tabindex="-1" aria-labelledby="push-ask-title" aria-describedby="push-ask-sub">
@@ -1553,7 +1577,7 @@ document.getElementById('chat-form').addEventListener('submit',async function(e)
 // 사파리(아이폰·아이패드)는 푸시가 올 때마다 꼭 기기 알림을 띄워야 해서, 화면 안 알림과 겹치지 않게 따로 구분함 (sw.js 와 같은 식)
 var PUSH_ALWAYS=/AppleWebKit/.test(navigator.userAgent)&&!/Chrome|Android/.test(navigator.userAgent);
 var pushOn=false;   // 이 기기가 푸시 알림을 받도록 등록돼 있는지
-function pushSupported(){return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;}
+function pushSupported(){return !IS_FLOAT&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;}
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(function(e){console.error('sw:',e);});
   navigator.serviceWorker.addEventListener('message',function(e){
