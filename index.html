@@ -568,8 +568,9 @@ html,body{overscroll-behavior-y:contain;}
 .float{--book-h:calc(100vh - 54px);}
 .float body,.float .cover-screen,.float .gate{background:none;}
 .float .container{padding:10px 50px 44px 24px;}   /* 아래는 책 그림자가 잘리지 않을 만큼 (desktop/main.js 의 창 크기 계산과 같은 숫자) */
-.float body:has(#gate:not([hidden]))>.container{visibility:hidden;}   /* 로그인 화면이 뜨면 뒤의 빈 책은 숨김 (가려 줄 배경이 없으니) */
-.float body.cover-on>.container{visibility:hidden;transition:visibility 0s .9s;}   /* 표지가 덮여 있을 땐 속지의 스프링·책갈피가 표지 옆으로 비치지 않게 (덮이는 동안은 보이다가 다 덮이면 숨김) */
+/* 책을 숨길 땐 opacity 로: visibility 는 안쪽의 .page.active{visibility:visible} 이 이겨서 캘린더가 그대로 보임 */
+.float body:has(#gate:not([hidden]))>.container{opacity:0;pointer-events:none;}   /* 로그인 화면이 뜨면 뒤의 빈 책은 숨김 (가려 줄 배경이 없으니) */
+.float body.cover-on>.container{opacity:0;pointer-events:none;transition:opacity 0s .9s;}   /* 표지가 덮여 있을 땐 속지의 스프링·책갈피가 표지 옆으로 비치지 않게 (덮이는 동안은 보이다가 다 덮이면 숨김) */
 .float .day-sheet,.float .photo-view{inset:10px 50px 44px 24px;border-radius:3px 10px 10px 3px;}   /* 어둡게 깔리는 막은 책 크기로만 */
 .float .place-bar{bottom:58px;}
 .float .chat-toast{right:62px;bottom:56px;}
