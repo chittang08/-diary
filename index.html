@@ -573,7 +573,7 @@ html,body{overscroll-behavior-y:contain;}
         <div class="cover-hint">눌러서 펼치기 →</div>
         <div class="cover-elastic"></div>
       </div>
-      <div class="cover-tabs">
+      <div class="cover-tabs" id="cover-tabs" hidden>   <!-- 로그인해야 보임 (renderCoupleHeader) -->
         <button class="bookmark" style="--c:var(--tab1)" onclick="event.stopPropagation();openBook('calendar')">캘린더</button>
         <button class="bookmark" style="--c:var(--tab2)" onclick="event.stopPropagation();openBook('album')">사진첩</button>
         <button class="bookmark" style="--c:var(--tab3)" onclick="event.stopPropagation();openBook('chat')">대화</button>
@@ -1823,6 +1823,7 @@ function renderCoupleHeader(){
   var el=document.getElementById('header-couple');
   document.getElementById('btn-logout').hidden=!me;
   document.getElementById('btn-delete').hidden=!me;
+  document.getElementById('cover-tabs').hidden=!me;   // 로그인 전에는 표지에 책갈피가 없음
   if(!couple){el.innerHTML='';return;}
   var myNick=(myProfile&&myProfile.nickname)||'나';
   el.innerHTML='';
