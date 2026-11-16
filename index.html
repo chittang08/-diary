@@ -524,6 +524,18 @@ button{cursor:pointer;font-family:var(--body);-webkit-tap-highlight-color:transp
   .chat-msg p{font-size:14.5px;}
 }
 
+/* 처음 한 번 뜨는 "알림을 켤까요?" 창: 아이폰 알림창처럼 반투명 회색에 둥근 모서리 */
+.push-ask{position:fixed;inset:0;z-index:9600;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.28);font-family:var(--body);}
+.push-ask-card{width:min(280px,100%);border-radius:16px;overflow:hidden;outline:none;text-align:center;color:#1C1C1E;
+  background:rgba(236,236,240,.88);-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);}
+.push-ask-title{padding:20px 18px 4px;font-size:17px;font-weight:600;}
+.push-ask-sub{padding:0 18px 18px;font-size:13.5px;line-height:1.45;}
+.push-ask-actions{display:flex;border-top:1px solid rgba(60,60,67,.28);}
+.push-ask-actions button{flex:1;min-height:46px;border:none;background:none;font-size:17px;color:var(--cover-ink);}
+.push-ask-actions button+button{border-left:1px solid rgba(60,60,67,.28);font-weight:700;}
+.push-ask-actions button:active{background:rgba(60,60,67,.12);}
+.push-ask-actions button:focus-visible{outline-offset:-5px;border-radius:12px;}   /* 둥근 창 밖으로 테두리가 삐져나오지 않게 안쪽에 */
+
 /* ===== 당겨서 새로고침 ===== */
 html,body{overscroll-behavior-y:contain;}
 .pull-refresh{position:fixed;top:10px;left:50%;z-index:60;transform:translate(-50%,-70px);display:flex;align-items:center;gap:8px;
@@ -727,6 +739,17 @@ html,body{overscroll-behavior-y:contain;}
   <div class="photo-view-cap"></div>
 </div>
 
+<!-- 이 기기에서 처음 한 번: 알림을 켤지 물어보는 창 -->
+<div class="push-ask" id="push-ask" hidden>
+  <div class="push-ask-card" id="push-ask-card" role="alertdialog" tabindex="-1" aria-labelledby="push-ask-title" aria-describedby="push-ask-sub">
+    <div class="push-ask-title" id="push-ask-title">알림을 켤까요?</div>
+    <div class="push-ask-sub" id="push-ask-sub">짝꿍이 연결되거나 메시지를 보내면<br>다이어리를 꺼 놔도 알려 드려요.</div>
+    <div class="push-ask-actions">
+      <button type="button" onclick="answerPushAsk(false)">끄기</button>
+      <button type="button" onclick="answerPushAsk(true)">켜기</button>
+    </div>
+  </div>
+</div>
 <button type="button" class="chat-toast" id="chat-toast" onclick="openChatFromToast()" aria-live="polite"><b id="chat-toast-name"></b><span id="chat-toast-text"></span></button>
 <div id="pull-refresh" class="pull-refresh" aria-live="polite"><span class="pull-icon">↓</span><span class="pull-text">당겨서 새로고침</span></div>
 
@@ -1507,7 +1530,10 @@ var pushOn=false;   // 이 기기가 푸시 알림을 받도록 등록돼 있는
 function pushSupported(){return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;}
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(function(e){console.error('sw:',e);});
-  navigator.serviceWorker.addEventListener('message',function(e){if(e.data==='open-chat') openChatFromToast();});   // 기기 알림을 눌렀을 때
+  navigator.serviceWorker.addEventListener('message',function(e){
+    if(e.data==='open-chat') openChatFromToast();        // 대화 알림을 눌렀을 때
+    else if(e.data==='refresh') refreshFromServer();     // 짝꿍이 연결됐다는 알림이 왔을 때: 기다리던 화면이 바로 넘어가게
+  });
 }
 function b64ToBytes(s){   // 서버가 준 공개 열쇠(base64url)를 브라우저가 받는 모양으로
   var raw=atob(s.replace(/-/g,'+').replace(/_/g,'/'));
@@ -1548,6 +1574,17 @@ function bellClick(){
   if(!pushSupported()) alert('이 브라우저에서는 다이어리를 꺼 뒀을 때 알림을 받을 수 없어요.\n아이폰·아이패드는 공유 버튼 → "홈 화면에 추가"로 설치한 다음, 홈 화면의 다이어리에서 다시 눌러 주세요.');
   else if(Notification.permission==='denied') alert('알림이 차단돼 있어요. 브라우저(또는 기기) 설정에서 이 사이트의 알림을 허용해 주세요.');
   else pushSync(true);
+}
+// 이 기기에서 처음 한 번만 알림을 켤지 물어봄 (대답은 기기에 기억해 두고, 나중에는 대화 창의 종 버튼으로 켤 수 있음)
+function maybeAskPush(){
+  if(!me||!pushSupported()||Notification.permission!=='default'||localStorage.getItem('diary_push_asked')) return;
+  document.getElementById('push-ask').hidden=false;
+  document.getElementById('push-ask-card').focus();   // 화면 읽어 주는 기능이 창을 읽도록 (테두리 표시는 없음)
+}
+function answerPushAsk(on){
+  localStorage.setItem('diary_push_asked','1');
+  document.getElementById('push-ask').hidden=true;
+  if(on) pushSync(true);
 }
 // 로그아웃하면 이 기기로는 더 이상 알림이 안 오게 등록을 지움
 async function pushForget(){
@@ -1690,7 +1727,7 @@ function goPrev(){
 }
 var TAP_IGNORE='button,input,textarea,select,a,label,[onclick],.bookmark,.cal-grid,.day-sheet,.photo-view,.album-panel,.chat,.place-bar';
 function isGateShown(){return !document.getElementById('gate').hidden;}
-function isOverlayShown(){return !document.getElementById('day-sheet').hidden||!document.getElementById('photo-view').hidden||!document.getElementById('album-new').hidden||!document.getElementById('ask').hidden||!!placing;}
+function isOverlayShown(){return !document.getElementById('day-sheet').hidden||!document.getElementById('photo-view').hidden||!document.getElementById('album-new').hidden||!document.getElementById('ask').hidden||!document.getElementById('push-ask').hidden||!!placing;}
 document.addEventListener('click',function(e){
   if(isCoverShown()||isGateShown()||isOverlayShown()||e.target.closest('#cover')) return;
   if(e.target.closest(TAP_IGNORE)) return;
@@ -1827,6 +1864,7 @@ async function refreshSession(session){
     await loadAlbums();
     await loadChat();
     pushSync();   // 기다리지 않음: 알림 등록이 늦거나 실패해도 다이어리는 바로 열림
+    maybeAskPush();
     renderGate();
   }catch(err){
     document.getElementById('gate-error-msg').textContent='기록을 불러오지 못했어요. 잠시 후 새로고침해 주세요.';
@@ -1906,6 +1944,8 @@ document.getElementById('join-form').addEventListener('submit',async function(e)
   var r=await sb.rpc('join_couple',{code:code});
   if(r.error){msg.textContent=r.error.message;return;}
   if(!r.data||!r.data.id){msg.textContent='초대 코드를 찾을 수 없어요. 이미 연결이 끝난 코드일 수도 있어요. (15분에 5번까지)';return;}
+  // 다이어리를 만들어 둔 짝꿍에게 "연결됐어요" 알림을 보내 달라고 서버에 부탁
+  sb.functions.invoke('notify-message',{body:{joined:true}}).then(function(x){if(x.error) console.error('push:',x.error);});
   await refreshSession({user:me});
 });
 

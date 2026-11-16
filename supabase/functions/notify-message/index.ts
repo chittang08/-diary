@@ -1,5 +1,5 @@
-// 대화 메시지를 보낸 뒤 앱이 부르는 함수: 짝꿍의 기기들로 푸시 알림(Web Push)을 보냄.
-// 부른 사람이 그 메시지를 보낸 본인일 때만 보냄.
+// 앱이 부르는 함수: 짝꿍의 기기들로 푸시 알림(Web Push)을 보냄. (새 대화 메시지 / 짝꿍이 초대 코드로 연결됨)
+// 메시지 알림은 부른 사람이 그 메시지를 보낸 본인일 때만, 연결 알림은 방금 들어온 사람일 때만 보냄.
 // 알림용 열쇠(VAPID)는 처음 한 번 만들어 DB의 push_keys 표에 넣어 두고 계속 씀 (비밀 열쇠는 이 함수만 읽음).
 // shortcut: 알림은 보낸 사람의 앱이 부탁해야 나감, 놓치는 알림이 생기면 DB 트리거(pg_net)로 옮기기
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -41,21 +41,31 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "로그인이 필요해요" }, 401);
 
     const k = await vapidKeys();
-    const { message_id } = await req.json().catch(() => ({}));
-    if (!message_id) return json({ publicKey: k.public_key });   // 기기를 등록할 때 쓰는 공개 열쇠
+    const { message_id, joined } = await req.json().catch(() => ({}));
+    if (!message_id && !joined) return json({ publicKey: k.public_key });   // 기기를 등록할 때 쓰는 공개 열쇠
 
-    const { data: msg } = await admin.from("messages").select("couple_id,sender_id,body").eq("id", message_id).maybeSingle();
-    if (!msg || msg.sender_id !== user.id) return json({ error: "내가 보낸 메시지가 아니에요" }, 403);
-
-    const { data: others } = await admin.from("couple_members").select("user_id").eq("couple_id", msg.couple_id).neq("user_id", user.id);
-    const ids = (others || []).map((m) => m.user_id);
+    const { data: prof } = await admin.from("profiles").select("nickname").eq("id", user.id).maybeSingle();
+    let ids: string[] = [];
+    let message: { title: string; body: string; tag: string };   // tag 는 sw.js 가 알림 종류를 구분하는 데 씀
+    if (joined) {
+      // "짝꿍이 연결됐어요": 방금(10분 안) 초대 코드로 들어온 사람만, 먼저 와 있던 짝꿍에게 보낼 수 있음
+      // (아무 때나 반복해서 불러 짝꿍에게 알림을 퍼붓지 못하게)
+      const { data: mine } = await admin.from("couple_members").select("couple_id,joined_at").eq("user_id", user.id).maybeSingle();
+      if (!mine || Date.now() - Date.parse(mine.joined_at) > 10 * 60 * 1000) return json({ sent: 0 });
+      const { data: others } = await admin.from("couple_members").select("user_id,joined_at").eq("couple_id", mine.couple_id).neq("user_id", user.id);
+      ids = (others || []).filter((m) => Date.parse(m.joined_at) <= Date.parse(mine.joined_at)).map((m) => m.user_id);
+      message = { title: "짝꿍이 연결됐어요 ♥", body: `${prof?.nickname || "짝꿍"}님이 우리 다이어리에 들어왔어요.`, tag: "joined" };
+    } else {
+      const { data: msg } = await admin.from("messages").select("couple_id,sender_id,body").eq("id", message_id).maybeSingle();
+      if (!msg || msg.sender_id !== user.id) return json({ error: "내가 보낸 메시지가 아니에요" }, 403);
+      const { data: others } = await admin.from("couple_members").select("user_id").eq("couple_id", msg.couple_id).neq("user_id", user.id);
+      ids = (others || []).map((m) => m.user_id);
+      message = { title: prof?.nickname || "다이어리", body: msg.body.slice(0, 120), tag: "chat" };
+    }
     if (!ids.length) return json({ sent: 0 });
 
-    const [{ data: subs }, { data: prof }] = await Promise.all([
-      admin.from("push_subscriptions").select("id,endpoint,p256dh,auth").in("user_id", ids),
-      admin.from("profiles").select("nickname").eq("id", user.id).maybeSingle(),
-    ]);
-    const payload = JSON.stringify({ title: prof?.nickname || "다이어리", body: msg.body.slice(0, 120) });
+    const { data: subs } = await admin.from("push_subscriptions").select("id,endpoint,p256dh,auth").in("user_id", ids);
+    const payload = JSON.stringify(message);
 
     let sent = 0;
     await Promise.all((subs || []).map(async (s) => {
