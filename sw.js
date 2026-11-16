@@ -14,7 +14,7 @@ self.addEventListener('push',function(e){
     if(tag==='joined') list.forEach(function(c){c.postMessage('refresh');});   // 기다리던 화면이 바로 다이어리로 넘어가게
     // 대화 알림은 다이어리를 지금 보고 있으면 화면 안 알림이 대신 뜸
     else if(!PUSH_ALWAYS&&list.some(function(c){return c.focused;})) return;
-    return self.registration.showNotification(d.title||'다이어리',{body:d.body||'새 메시지가 왔어요',tag:tag,renotify:true});
+    return self.registration.showNotification(d.title||'다이어리',{body:d.body||'새 메시지가 왔어요',icon:'icon-192.png',tag:tag,renotify:true});
   }));
 });
 

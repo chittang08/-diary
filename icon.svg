@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 앱 아이콘 원본: 다이어리 표지(장밋빛 양장, 왼쪽 스프링, 오른쪽 고무줄)에 크림색 하트.
+       여기서 icon-192.png / icon-512.png / apple-touch-icon.png / favicon.ico 를 뽑음.
+       하트는 가운데 원(반지름 205) 안에 있어서 동그랗게 잘리는 기기에서도 안 잘림. -->
+  <defs>
+    <linearGradient id="cover" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#CE7884"/>
+      <stop offset="1" stop-color="#AE505D"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#cover)"/>
+  <!-- 고무줄 -->
+  <rect x="408" width="30" height="512" fill="#8E3F49" opacity=".8"/>
+  <!-- 스프링: 구멍에서 나와 왼쪽 가장자리로 감기는 고리 다섯 개 -->
+  <g fill="#8E3F49">
+    <circle cx="88" cy="92" r="14"/><circle cx="88" cy="174" r="14"/><circle cx="88" cy="256" r="14"/><circle cx="88" cy="338" r="14"/><circle cx="88" cy="420" r="14"/>
+  </g>
+  <g fill="#F6ECD9">
+    <rect x="-24" y="81" width="110" height="22" rx="11"/><rect x="-24" y="163" width="110" height="22" rx="11"/><rect x="-24" y="245" width="110" height="22" rx="11"/><rect x="-24" y="327" width="110" height="22" rx="11"/><rect x="-24" y="409" width="110" height="22" rx="11"/>
+  </g>
+  <!-- 하트 (아래에 살짝 그림자) -->
+  <g transform="translate(262 250) scale(1.15)">
+    <path transform="translate(0 9)" fill="#7E333D" opacity=".28" d="M0,98C-12,85-104,29-104,-31C-104,-66-77,-88-49,-88C-28,-88-9,-77 0,-59C9,-77 28,-88 49,-88C77,-88 104,-66 104,-31C104,29 12,85 0,98Z"/>
+    <path fill="#FFF6E6" d="M0,98C-12,85-104,29-104,-31C-104,-66-77,-88-49,-88C-28,-88-9,-77 0,-59C9,-77 28,-88 49,-88C77,-88 104,-66 104,-31C104,29 12,85 0,98Z"/>
+  </g>
+</svg>
