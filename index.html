@@ -551,7 +551,29 @@ html,body{overscroll-behavior-y:contain;}
 .pull-refresh.loading .pull-icon{animation:pullSpin .8s linear infinite;}
 .pull-refresh.fail{color:var(--text2);}
 @keyframes pullSpin{to{transform:rotate(360deg);}}
+
+/* ===== 컴퓨터용 앱 창 (바탕화면 아이콘으로 열면 주소에 ?shell=1 이 붙음): 옆 여백 없이 책만 창에 꽉 차게 ===== */
+.shell{--book-h:calc(100vh - 34px);}
+.shell body{overflow:hidden;}
+.shell .container{padding:10px 50px 24px 24px;}   /* 왼쪽은 스프링, 오른쪽은 책갈피가 삐져나올 만큼만 */
+/* 책의 왼쪽·오른쪽 가장자리를 누르면 앞 장·다음 장으로 (옆 여백이 없어서 책 안에 누를 자리를 둠) */
+.edge-nav{display:none;}
+.shell .edge-nav{display:flex;align-items:center;justify-content:center;position:absolute;z-index:4;top:0;bottom:0;border:none;background:none;
+  font-family:var(--hand);font-size:34px;color:rgba(70,55,42,0);transition:color .15s,background-color .15s;}
+.shell .edge-nav.prev{left:20px;width:30px;}
+.shell .edge-nav.next{right:0;width:26px;border-radius:0 10px 10px 0;}
+.shell .edge-nav:hover,.shell .edge-nav:focus-visible{color:rgba(70,55,42,.7);background-color:rgba(70,55,42,.06);}
 </style>
+<script>
+// 컴퓨터용 앱 창으로 열렸으면 책만 보이는 모양으로 바꾸고, 창 너비를 책에 맞춤 (크기 조절은 앱 창에서만 되고 보통 탭에서는 무시됨)
+if(new URLSearchParams(location.search).has('shell')){
+  document.documentElement.classList.add('shell');
+  addEventListener('load',function(){
+    var need=Math.min(880,Math.round((innerHeight-34)*0.74))+74;   // 책 너비 + 양옆 여백 (.shell .container 와 같은 숫자)
+    if(Math.abs(need-innerWidth)>2) try{resizeTo(outerWidth+need-innerWidth,outerHeight);}catch(e){}
+  });
+}
+</script>
 </head>
 <body class="cover-on">
 
@@ -586,6 +608,8 @@ html,body{overscroll-behavior-y:contain;}
 <div class="container">
  <div class="book">
   <div class="spiral"></div>
+  <button type="button" class="edge-nav prev" onclick="goPrev()" aria-label="앞 장으로">‹</button>
+  <button type="button" class="edge-nav next" onclick="goNext()" aria-label="다음 장으로">›</button>
   <nav class="bookmarks">
     <button class="bookmark active" data-tab="calendar" style="--c:var(--tab1)" onclick="flipTo('calendar')">캘린더</button>
     <button class="bookmark" data-tab="album" style="--c:var(--tab2)" onclick="flipTo('album')">사진첩</button>
