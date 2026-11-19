@@ -236,18 +236,6 @@ $$;
 
 alter table public.couples alter column invite_code set default public.generate_invite_code();
 
--- 히트맵용: 날짜·사람별 체크 개수 (RLS 그대로 적용되도록 security invoker)
-create or replace function public.couple_check_days(since date)
-returns table (check_date date, user_id uuid, n int)
-language sql stable security invoker set search_path = public
-as $$
-  select c.check_date, c.user_id, count(*)::int
-  from public.routine_checks c
-  where c.couple_id = public.my_couple_id() and c.check_date >= since
-  group by c.check_date, c.user_id
-$$;
-
-
 -- ---------- 커플 만들기 / 초대 코드로 연결 ----------
 
 -- 새 커플 다이어리 만들기 → 초대 코드가 담긴 couples 행을 돌려줌
@@ -391,7 +379,6 @@ grant insert (couple_id, body) on public.messages to authenticated;
 revoke execute on function public.create_couple()          from public, anon;
 revoke execute on function public.join_couple(text)        from public, anon;
 revoke execute on function public.my_couple_id()           from public, anon;
-revoke execute on function public.couple_check_days(date)  from public, anon;
 revoke execute on function public.delete_my_account()      from public, anon;
 grant  execute on function public.delete_my_account()      to authenticated;
 revoke execute on function public.save_push_subscription(text, text, text) from public, anon;
@@ -401,7 +388,6 @@ grant  execute on function public.join_couple(text)        to authenticated;
 grant  execute on function public.my_couple_id()           to authenticated;   -- RLS 규칙 안에서 쓰임
 revoke execute on function public.kst_today()              from public, anon;
 grant  execute on function public.kst_today()              to authenticated;   -- RLS 규칙 안에서 쓰임
-grant  execute on function public.couple_check_days(date)  to authenticated;
 -- 트리거·기본값 전용 함수는 직접 못 부르게
 revoke execute on function public.handle_new_user()        from public, anon, authenticated;
 revoke execute on function public.touch_updated_at()       from public, anon, authenticated;

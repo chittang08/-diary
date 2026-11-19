@@ -23,23 +23,19 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --ink:#2E2925;--ink2:#6E6259;--ink3:#A89C8E;
-  --text:#2E2925;--text2:#6E6259;--text3:#A89C8E;
-  --green:#3F8F6B;--sage:#4E8B72;--yellow:#C9923C;--red:#BE4E43;--blue:#5A7FA8;
-  --bg:#FCF6E8;--bg2:#FFFDF5;--bg3:#F2E8D5;--border:rgba(70,55,42,0.12);
+  --text:#2E2925;--text2:#6E6259;
+  --green:#3F8F6B;--red:#BE4E43;--blue:#5A7FA8;
+  --bg:#FCF6E8;--bg3:#F2E8D5;
   --desk:#E7DBC6;--paper:#FCF6E8;--paper2:#FFFCF3;
-  --cover:#BC5E6B;--cover-ink:#8E3F49;--band:#F8EFDC;
+  --cover:#BC5E6B;--cover-ink:#8E3F49;
   --tab1:#F6C9D2;--tab2:#F6E3B4;--tab3:#CDE1F0;--rose:#BF6E7E;--rose-deep:#A15A66;
   --hand:'Gaegu','Pretendard Variable',system-ui,sans-serif;
   --body:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo',sans-serif;
-  /* 종이 섬유 질감 */
   --grain-paper:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .34 0 0 0 0 .24 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
   --grain-desk:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='d'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.62' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .38 0 0 0 0 .29 0 0 0 0 .18 0 0 0 .085 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23d)'/%3E%3C/svg%3E");
-  /* 줄노트 결 */
   --rule:repeating-linear-gradient(180deg,rgba(88,128,152,0) 0 28px,rgba(88,128,152,.21) 28px 29px);
   --rule-soft:repeating-linear-gradient(180deg,rgba(88,128,152,0) 0 28px,rgba(88,128,152,.15) 28px 29px);
-  /* 스프링 링 + 타공 구멍 (본문 40x26) */
   --ring:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='26'%3E%3Cpath d='M-8 13c0-4.6 8.6-7.6 19.2-7.6S30.4 8.4 30.4 13' fill='none' stroke='%234A4538' stroke-width='2.8' stroke-linecap='round'/%3E%3Cpath d='M-8 13c0 4.6 8.6 7.6 19.2 7.6S30.4 17.6 30.4 13' fill='none' stroke='%235D584A' stroke-width='2.6' stroke-linecap='round'/%3E%3Cpath d='M-7 11.9c.5-4.2 8.8-6.8 18.3-6.8 8.4 0 15 1.9 18 4.6' fill='none' stroke='%23CDC6B4' stroke-opacity='.7' stroke-width='.9'/%3E%3Ccircle cx='31' cy='13' r='3.9' fill='%23D6C3A2'/%3E%3Cpath d='M27.3 12.3a3.7 3.7 0 0 1 7.4 0' fill='none' stroke='%23806C50' stroke-opacity='.45' stroke-width='1.3'/%3E%3Cpath d='M27.6 14.4a3.7 3.7 0 0 0 6.8-.2' fill='none' stroke='%23FFF9E9' stroke-opacity='.8' stroke-width='1'/%3E%3C/svg%3E");
-  /* 표지용 조금 큰 링 (44x26) */
   --ring-lg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='26'%3E%3Cpath d='M-8 13c0-4.7 9.4-7.8 21-7.8s20 3.1 20 7.8' fill='none' stroke='%234A4538' stroke-width='2.9' stroke-linecap='round'/%3E%3Cpath d='M-8 13c0 4.7 9.4 7.8 21 7.8s20-3.1 20-7.8' fill='none' stroke='%235D584A' stroke-width='2.7' stroke-linecap='round'/%3E%3Cpath d='M-7 11.9c.5-4.3 9.6-7 20-7 9.2 0 16.4 2 19.6 4.8' fill='none' stroke='%23CDC6B4' stroke-opacity='.7' stroke-width='.9'/%3E%3Ccircle cx='35' cy='13' r='4.2' fill='%23D6C3A2'/%3E%3Cpath d='M31 12.2a4 4 0 0 1 8 0' fill='none' stroke='%23806C50' stroke-opacity='.45' stroke-width='1.4'/%3E%3Cpath d='M31.3 14.5a4 4 0 0 0 7.4-.2' fill='none' stroke='%23FFF9E9' stroke-opacity='.8' stroke-width='1'/%3E%3C/svg%3E");
 }
 html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
@@ -54,10 +50,9 @@ body{background-color:var(--desk);color:var(--ink);font-family:var(--body);font-
 /* 공책 한 권의 크기: 표지와 모든 페이지가 똑같이 씀. 화면 높이에 맞추고 가로:세로 ≈ 3:4 */
 :root{--book-h:calc(100vh - 70px);--book-w:min(880px,calc(var(--book-h) * 0.74));}
 .container{max-width:960px;margin:0 auto;padding:28px 54px 42px 26px;}
-.book{width:var(--book-w);max-width:100%;margin:0 auto;}
+.book{position:relative;width:var(--book-w);max-width:100%;margin:0 auto;}
 
 /* ===== 다이어리 본문 ===== */
-.book{position:relative;}
 .paper{position:relative;z-index:2;border-radius:3px 10px 10px 3px;padding:24px 26px 34px 50px;height:var(--book-h);overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
   overscroll-behavior-y:contain;
   background:
@@ -70,9 +65,7 @@ body{background-color:var(--desk);color:var(--ink);font-family:var(--body);font-
     5px 5px 0 -1px #F1E6D1,5px 5px 0 0 rgba(94,74,54,.10),
     10px 10px 0 -1px #ECE0C9,10px 10px 0 0 rgba(94,74,54,.09),
     0 26px 44px -26px rgba(70,52,36,.55);}
-/* 왼쪽 여백선 */
 .paper::before{content:'';position:absolute;z-index:1;left:36px;top:0;bottom:0;width:1.2px;background:rgba(198,104,120,.34);pointer-events:none;}
-/* 마스킹 테이프 */
 .spiral{position:absolute;z-index:3;left:-18px;top:18px;bottom:18px;width:40px;background:var(--ring) 0 0/40px 26px round;pointer-events:none;
   filter:drop-shadow(1px 1px 1px rgba(60,45,32,.18));}
 .bookmarks{position:absolute;z-index:1;top:88px;right:-42px;display:flex;flex-direction:column;gap:6px;}
@@ -163,13 +156,12 @@ body.cover-on{overflow:hidden;}
     linear-gradient(180deg,#EFE5D2,#E6D9C2 60%,#DCCDB4);
   transition:opacity 0.35s ease,visibility 0s 0s;}
 .cover-screen.open{opacity:0;visibility:hidden;pointer-events:none;transition:opacity 0.45s ease 0.45s,visibility 0s 0.9s;}
-.cover-screen .book{perspective:4200px;perspective-origin:0 50%;}   /* 스프링 쪽을 축으로, 멀리서 보듯 */
-.cover-wrap{position:relative;width:100%;height:var(--book-h);}   /* .paper 와 같은 크기 */
-.paper::-webkit-scrollbar{display:none;}   /* 페이지 안 스크롤은 되지만 막대는 숨김 */
+.cover-screen .book{perspective:4200px;perspective-origin:0 50%;}
+.cover-wrap{position:relative;width:100%;height:var(--book-h);}
+.paper::-webkit-scrollbar{display:none;}
 .cover-book{position:absolute;inset:0;container-type:inline-size;transform-origin:left center;
   transition:transform 0.85s cubic-bezier(0.6,0.05,0.3,1);}
 .cover-screen.open .cover-book{transform:rotateY(-110deg);}
-/* 표지 뒤로 비치는 속지 종이 단면 (오른쪽·아래) — 표지가 열려도 제자리에 남음 */
 .cover-edges{position:absolute;pointer-events:none;border-radius:2px 6px 6px 2px;}
 .cover-edges.bottom{left:14px;right:-3px;top:8px;bottom:-9px;
   background:repeating-linear-gradient(90deg,#FBF6EA 0 1.5px,#E4DAC5 1.5px 2.5px);
@@ -177,7 +169,6 @@ body.cover-on{overflow:hidden;}
 .cover-edges.right{top:5px;bottom:-5px;left:12px;right:-8px;
   background:repeating-linear-gradient(180deg,#FBF6EA 0 1.5px,#E4DAC5 1.5px 2.5px);
   box-shadow:0 0 0 1px rgba(94,74,54,.14),12px 16px 30px -14px rgba(70,52,36,.6);}
-/* 리넨(천) 결이 있는 하드커버 */
 .cover-face{position:absolute;inset:0;z-index:2;border-radius:2px 8px 8px 2px;overflow:hidden;
   background:
     var(--grain-paper),
@@ -187,14 +178,11 @@ body.cover-on{overflow:hidden;}
     linear-gradient(90deg,rgba(62,20,24,.28) 0,rgba(62,20,24,.07) 7%,rgba(0,0,0,0) 15%),
     linear-gradient(162deg,#C9767F 0%,#BC5F6B 48%,#A94C59 100%);
   box-shadow:0 0 0 1px rgba(84,32,38,.3),inset 0 0 48px rgba(88,30,36,.22),inset 0 1px 0 rgba(255,255,255,.14),0 30px 50px -26px rgba(70,36,34,.6);}
-/* 가장자리 박음질 선 */
 .cover-face::before{content:'';position:absolute;z-index:1;inset:11px 11px 11px 32px;border:1.5px dashed rgba(255,240,232,.34);border-radius:2px 6px 6px 2px;pointer-events:none;}   /* 왼쪽은 링 구멍을 피해 안쪽으로 */
-/* 모서리가 살짝 닳은 느낌 */
 .cover-face::after{content:'';position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(62px 62px at 100% 0,rgba(255,236,230,.22),rgba(255,236,230,0) 70%),
     radial-gradient(72px 72px at 100% 100%,rgba(255,236,230,.16),rgba(255,236,230,0) 70%),
     radial-gradient(52px 52px at 0 100%,rgba(255,236,230,.12),rgba(255,236,230,0) 70%);}
-/* 종이 라벨: 아래쪽이 찢긴 듯한 결, 위에는 마스킹 테이프 */
 .cover-title-wrap{position:absolute;z-index:2;top:21%;left:10%;right:18%;padding:9% 5% 8%;text-align:center;border-radius:2px 2px 0 0;
   background:var(--grain-paper),linear-gradient(180deg,#FFFDF6,#F9F1DD);
   box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 9px 16px -9px rgba(60,40,30,.6);transform:rotate(-1.2deg);}
@@ -204,14 +192,12 @@ body.cover-on{overflow:hidden;}
 .cover-title-wrap::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:7px;
   background:radial-gradient(circle at 5px 0,#F9F1DD 3.4px,rgba(0,0,0,0) 4px) 0 0/10px 7px repeat-x;}
 .cover-title{font-family:var(--hand);font-weight:700;font-size:min(8.6cqw,58px);line-height:1.18;color:#4B332E;word-break:keep-all;letter-spacing:.01em;white-space:nowrap;}
-.cover-line{height:2px;width:62%;margin:5% auto 0;border-radius:2px;background:rgba(75,51,46,.3);transform:rotate(-.6deg);}   /* 손으로 그은 밑줄 두 개 */
+.cover-line{height:2px;width:62%;margin:5% auto 0;border-radius:2px;background:rgba(75,51,46,.3);transform:rotate(-.6deg);}
 .cover-line.thin{height:1px;width:46%;margin-top:4px;background:rgba(75,51,46,.22);transform:rotate(.8deg);}
-/* 띠지: 크라프트 종이 띠가 표지를 두름 */
 .cover-band{position:absolute;z-index:2;left:0;right:0;top:62%;height:11%;display:flex;align-items:center;justify-content:center;padding:0 20% 0 12%;
   background:var(--grain-paper),linear-gradient(180deg,#F8EFDC,#EEE2C8);
   box-shadow:0 4px 9px -4px rgba(60,40,30,.55),inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(94,74,54,.16);
   font-family:var(--hand);font-weight:700;font-size:min(4.6cqw,27px);letter-spacing:.24em;color:var(--rose-deep);text-shadow:0 1px 0 rgba(255,255,255,.75);}
-/* 고무줄: 세로로 짜인 결 */
 .cover-elastic{position:absolute;z-index:4;top:-3px;bottom:-3px;right:9.5%;width:min(3.4cqw,22px);border-radius:2px;
   background:repeating-linear-gradient(180deg,rgba(255,255,255,.08) 0 4px,rgba(0,0,0,0) 4px 8px),linear-gradient(90deg,#6B4341,#835552 45%,#5B3A38 72%,#472A28);
   box-shadow:-2px 0 6px rgba(58,30,30,.3),2px 0 4px rgba(58,30,30,.18),inset 0 0 0 1px rgba(255,255,255,.07);}
@@ -235,7 +221,7 @@ body.cover-on{overflow:hidden;}
   .header-title{font-size:24px;flex:1 1 100%;}
   .header-chapter{display:block;margin:0;font-size:14.5px;line-height:1.4;}
   .header-chapter::before{content:'';}
-  .header>div:first-child{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 12px;}   /* 날짜 · 커플을 한 줄에 */
+  .header>div:first-child{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 12px;}
   .header-date,.header-couple{margin-top:2px;font-size:14px;}
   .header-right{width:100%;justify-content:flex-end;gap:6px;}
   .close-book{font-size:13px;padding:3px 9px;}
@@ -256,11 +242,9 @@ body.cover-on{overflow:hidden;}
 .page{grid-area:1/1;min-width:0;visibility:hidden;}
 .page.active{visibility:visible;}
 /* ===== 캘린더 (페이지 위에 따로 얹은 종이 한 장) ===== */
-/* 종이 위에 연필로 그린 달력 느낌: 칸은 상자가 아니라 가는 선, 장식은 손글씨·형광펜 */
 :root{--pencil:rgba(70,55,42,.22);--pencil-dark:rgba(70,55,42,.38);
   /* 구겨진 종이의 명암: 노이즈 표면에 빛을 비춘 것 (multiply 로 겹치면 접힌 자리만 살짝 어두워짐) */
   --crumple:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='5' seed='11' stitchTiles='stitch'/%3E%3CfeDiffuseLighting lighting-color='%23ffffff' surfaceScale='1.7' diffuseConstant='1.22'%3E%3CfeDistantLight azimuth='38' elevation='66'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)'/%3E%3C/svg%3E");}
-/* 종이 두 장: 뒤에 한 장이 살짝 어긋나게 깔려 두께감, 앞 장은 밝은 크림색 + 은은한 주름 명암, 오른쪽 위는 살짝 접힌 귀퉁이 */
 .sheet-wrap{position:relative;margin:6px 8px 12px 4px;}
 .sheet-wrap::before{content:'';position:absolute;inset:0;border-radius:2px;border:1px solid var(--pencil);pointer-events:none;
   background:var(--grain-paper),linear-gradient(180deg,#FBF5E7 0%,#F6EEDC 100%);
@@ -276,7 +260,7 @@ body.cover-on{overflow:hidden;}
   box-shadow:0 1px 2px rgba(70,52,36,.12),0 8px 18px -16px rgba(70,52,36,.45);
   transform:rotate(-.45deg);}
 .calendar::before,.album-panel::before,.chat::before{content:'';position:absolute;top:-1px;right:-1px;width:0;height:0;border-style:solid;border-width:0 26px 26px 0;
-  border-color:#FCF6E8 #FCF6E8 #EFE5D1 #EFE5D1;   /* 위·오른쪽은 밑 종이색, 아래·왼쪽은 접힌 면 */
+  border-color:#FCF6E8 #FCF6E8 #EFE5D1 #EFE5D1;
   filter:drop-shadow(-1px 1px 1px rgba(70,52,36,.22));pointer-events:none;z-index:1;}
 .cal-head{position:relative;text-align:center;padding:6px 0 16px;}
 .cal-year-wrap{position:absolute;left:0;top:0;display:flex;align-items:center;gap:5px;}
@@ -288,7 +272,7 @@ body.cover-on{overflow:hidden;}
 .cal-year-nav button:disabled{opacity:.2;cursor:default;}
 .cal-title-row{display:flex;align-items:center;justify-content:center;gap:10px;}
 .cal-month{border:none;padding:0 8px;font-family:var(--hand);font-size:40px;font-weight:700;line-height:1;color:var(--ink);letter-spacing:.02em;border-radius:0;
-  background:linear-gradient(180deg,rgba(0,0,0,0) 56%,rgba(247,219,132,.5) 56%,rgba(247,219,132,.5) 94%,rgba(0,0,0,0) 94%);}   /* 형광펜 자국 */
+  background:linear-gradient(180deg,rgba(0,0,0,0) 56%,rgba(247,219,132,.5) 56%,rgba(247,219,132,.5) 94%,rgba(0,0,0,0) 94%);}
 .cal-month:hover{background:linear-gradient(180deg,rgba(0,0,0,0) 56%,rgba(247,219,132,.78) 56%,rgba(247,219,132,.78) 94%,rgba(0,0,0,0) 94%);}
 .cal-nav{width:32px;height:32px;border:none;background:none;
   font-family:var(--hand);font-size:28px;line-height:1;color:var(--ink2);display:flex;align-items:center;justify-content:center;padding:0 0 4px;transition:color .18s;}
@@ -308,13 +292,12 @@ body.cover-on{overflow:hidden;}
 .cal-day.other{opacity:.3;}
 .cal-num{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;margin:-4px -5px;border-radius:50%;}
 .cal-day.today .cal-num{color:var(--rose-deep);font-weight:700;border:1.8px solid var(--rose);
-  border-radius:52% 46% 50% 48%/46% 54% 46% 54%;transform:rotate(-5deg);}   /* 손으로 그린 동그라미 */
-/* 칸 안의 폴라로이드 한 장: 흰 테두리에 아래가 두꺼움. 사진이 없으면 빈 틀이 연하게 보임 */
+  border-radius:52% 46% 50% 48%/46% 54% 46% 54%;transform:rotate(-5deg);}
 .cal-pola{position:absolute;z-index:1;left:50%;top:53%;width:84%;aspect-ratio:1/1.22;transform:translate(-50%,-50%) rotate(-1.5deg);
   background:#FFFEFB;padding:6% 6% 0;border-radius:1px;
   box-shadow:0 2px 6px -2px rgba(60,45,30,.45),0 0 0 .5px rgba(94,74,54,.14);}
 .cal-pola img,.cal-pola-blank{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#E9E2D4;}
-.cal-pola-blank{background:#ECE5D7;}   /* 아직 안 찍은 즉석사진: 연한 회갈색 면만 */
+.cal-pola-blank{background:#ECE5D7;}
 .cal-pola.empty{opacity:.32;box-shadow:0 1px 2px -1px rgba(60,45,30,.3),0 0 0 .5px rgba(94,74,54,.12);}
 .cal-day:hover .cal-pola.empty{opacity:.55;}
 .cal-day.has-photo .cal-num{background:rgba(255,253,245,.9);box-shadow:0 0 0 1px rgba(94,74,54,.08);}
@@ -333,14 +316,13 @@ body.cover-on{overflow:hidden;}
 .day-close:hover{color:var(--rose-deep);background:rgba(246,201,210,.45);}
 .day-title{font-family:var(--hand);font-size:26px;font-weight:700;color:var(--ink);line-height:1.2;padding-right:36px;}
 .day-sub{font-family:var(--hand);font-size:14px;color:var(--ink3);margin:3px 0 14px;}
-/* 그날의 기분: 연필로 그린 모양 4개 + 색연필 다섯 색 */
 .mood{margin:0 0 16px;padding:10px 12px 12px;border:1.2px dashed rgba(94,74,54,.28);border-radius:10px;background:var(--grain-paper),#FFFDF7;}   /* 불투명: 카드의 노트 줄이 도형을 가로질러 잘려 보이지 않게 */
 .mood-label{font-family:var(--hand);font-size:15px;color:var(--ink2);}
 .mood-shapes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-width:320px;margin:4px auto 0;}
 .mood-shape{aspect-ratio:1;border:none;background:none;border-radius:14px;padding:7px;transition:transform .15s,background .15s,opacity .15s;-webkit-tap-highlight-color:transparent;}
 .mood-shape svg{display:block;width:100%;height:100%;}
 .mood-shape:hover{transform:rotate(-4deg) scale(1.05);}
-.mood-shape[aria-pressed="true"]{background:rgba(247,219,132,.4);transform:rotate(-3deg);}   /* 형광펜으로 표시한 듯 */
+.mood-shape[aria-pressed="true"]{background:rgba(247,219,132,.4);transform:rotate(-3deg);}
 .mood-shapes.has-pick .mood-shape:not([aria-pressed="true"]){opacity:.42;}
 .mood-colors{display:flex;justify-content:center;gap:12px;margin-top:8px;}
 .mood-color{width:34px;height:26px;padding:0;border:1.4px solid rgba(60,50,40,.55);border-radius:4px 7px 3px 6px;background:var(--grain-paper),var(--c);transform:rotate(-2deg);transition:transform .12s,box-shadow .12s;}
@@ -355,7 +337,7 @@ body.cover-on{overflow:hidden;}
 .cal-moods svg:first-child:not(:only-child){width:76%;transform:translate(-74%,-60%) rotate(-12deg);}
 .cal-moods svg:nth-child(2){width:76%;transform:translate(-26%,-38%) rotate(10deg);}
 .cal-day:has(.cal-moods) .cal-pola{width:56%;}   /* 자리는 그대로, 조금 작게 해서 뒤의 도형이 둘레로 보임 */
-.cal-day:has(.cal-moods) .cal-pola.empty{display:none;}   /* 사진 없는 날은 빈 틀 대신 도형만 */
+.cal-day:has(.cal-moods) .cal-pola.empty{display:none;}
 .cal-day:has(.cal-moods) .cal-num{background:rgba(255,253,245,.9);box-shadow:0 0 0 1px rgba(94,74,54,.08);}   /* 색 위에서도 날짜가 읽히게 */
 .cal-moods path[fill-opacity],.mood-partner path[fill-opacity]{fill-opacity:.8;}   /* 작게 그리면 빗금이 뭉개져 색이 흐려지니 바탕색을 진하게 */
 .day-photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px;margin-bottom:14px;}
@@ -381,7 +363,6 @@ body.cover-on{overflow:hidden;}
 .ask-card .day-title{padding-right:0;}
 .ask-card .day-sub{margin:6px 0 0;}
 .ask-actions{display:flex;gap:14px;margin-top:22px;padding:0 4px;}
-/* 레트로 종이 버튼: 잉크 선 테두리 + 오려 붙인 듯한 딱 떨어지는 그림자 + 안쪽 점선, 살짝 삐뚤게 */
 .ask-actions .gate-btn{margin:0;flex:1;font-size:16px;padding:10px 8px;border-radius:3px;
   background:var(--grain-paper),#FFFDF6;color:var(--ink);border:1.6px solid var(--ink);
   box-shadow:3px 3px 0 var(--ink);outline:1px dashed rgba(46,41,37,.35);outline-offset:-5px;
@@ -433,7 +414,6 @@ body.cover-on{overflow:hidden;}
 .album-del{width:32px;height:32px;border:none;border-radius:50%;background:rgba(255,253,245,.6);font-size:14px;opacity:.55;}
 .album-del:hover{opacity:1;background:rgba(190,78,67,.12);}
 .shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:20px 14px;padding:8px 4px 6px;}
-/* 책장 위의 작은 책 */
 .book-item{position:relative;aspect-ratio:3/4;border:none;border-radius:2px 7px 7px 2px;padding:0;cursor:pointer;text-align:center;
   background:var(--grain-paper),
     repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,0) 1px 3px),
@@ -448,14 +428,13 @@ body.cover-on{overflow:hidden;}
 .book-count{position:absolute;left:0;right:0;bottom:9%;font-family:var(--hand);font-size:11.5px;color:rgba(255,246,236,.9);letter-spacing:.06em;}
 .album-empty{text-align:center;font-family:var(--hand);font-size:16px;line-height:1.6;color:var(--ink3);padding:36px 10px;}
 .album-canvas{position:relative;min-height:420px;border-radius:6px;}
-/* 폴라로이드 + 위에 붙인 마스킹테이프 */
 .pola-item{position:absolute;padding:7% 7% 0;background:#FFFEFB;border-radius:1px;transform-origin:50% 40%;user-select:none;-webkit-user-select:none;touch-action:none;cursor:zoom-in;
   box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 10px 18px -10px rgba(70,52,36,.7),0 0 0 1px rgba(94,74,54,.1);}
 .pola-item.mine{cursor:grab;}
 .pola-item.dragging{cursor:grabbing;z-index:5;box-shadow:0 18px 30px -14px rgba(70,52,36,.8),0 0 0 1px rgba(94,74,54,.14);}
 .pola-item.placing{z-index:6;outline:2px dashed rgba(191,110,126,.7);outline-offset:5px;}
-.pola-item.flying{opacity:0;pointer-events:none;}   /* 나타나기 전: 보이지 않음 */
-.pola-item.flying::before{opacity:0;}               /* 테이프는 다 나타난 다음에 살며시 */
+.pola-item.flying{opacity:0;pointer-events:none;}
+.pola-item.flying::before{opacity:0;}
 .pola-item::before{content:'';position:absolute;top:-9px;left:50%;width:46%;height:16px;margin-left:-23%;transform:rotate(-3deg);border-radius:1px;opacity:.93;transition:opacity .5s ease .08s;
   box-shadow:0 2px 4px -2px rgba(90,64,56,.35);
   -webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0),#000 6%,#000 94%,rgba(0,0,0,0));mask-image:linear-gradient(90deg,rgba(0,0,0,0),#000 6%,#000 94%,rgba(0,0,0,0));}
@@ -465,7 +444,6 @@ body.cover-on{overflow:hidden;}
 .pola-img{aspect-ratio:1/1;background:#E9E2D4;overflow:hidden;}
 .pola-img img{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none;}
 .pola-cap{min-height:2.3em;padding:6px 2px 8px;font-family:var(--hand);font-size:13px;line-height:1.25;color:var(--ink2);text-align:center;word-break:keep-all;overflow:hidden;}
-/* 사진 붙일 때 아래에 뜨는 막대 */
 .place-bar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:6500;width:min(460px,calc(100% - 24px));padding:12px 14px;border-radius:12px;
   background:var(--grain-paper),linear-gradient(180deg,#FFFCF4,#FBF4E4);box-shadow:0 0 0 1px rgba(94,74,54,.14),0 20px 40px -18px rgba(40,25,15,.6);
   display:flex;flex-direction:column;gap:8px;}
@@ -479,7 +457,6 @@ body.cover-on{overflow:hidden;}
 .gate-btn.danger{color:var(--red);border-color:rgba(190,78,67,.5);margin-right:auto;}
 #album-new-form{display:flex;flex-direction:column;}
 #album-new-form input[type=text]{font-size:16px;}
-/* 표지 색 고르기: 색마다 작은 책 모양으로 보여주고, 아래에 이름까지 붙은 큰 미리보기 */
 .cover-swatches{display:flex;gap:8px;margin:14px 0 12px;flex-wrap:wrap;}
 .swatch{position:relative;width:28px;height:38px;padding:0;border:2px solid rgba(0,0,0,0);border-radius:1px 5px 5px 1px;
   background:linear-gradient(90deg,rgba(0,0,0,.3) 0,rgba(0,0,0,.07) 20%,rgba(0,0,0,0) 34%),var(--c);
@@ -496,7 +473,7 @@ body.cover-on{overflow:hidden;}
 @media(max-width:500px){
   .album-panel{padding:12px 10px 14px;}
   .album-title{font-size:23px;}
-  .album-open .album-title{flex:1 1 100%;order:3;white-space:normal;margin-top:2px;}   /* 작은 화면: 앨범 이름은 버튼 아랫줄에 */
+  .album-open .album-title{flex:1 1 100%;order:3;white-space:normal;margin-top:2px;}
   .shelf{grid-template-columns:repeat(3,1fr);gap:14px 10px;}
   .pola-cap{font-size:11.5px;}
   .place-hint{display:none;}
@@ -508,7 +485,6 @@ body.cover-on{overflow:hidden;}
   box-shadow:0 16px 32px -14px rgba(70,52,36,.45);}
 .flip-face.back{transform:rotateY(180deg);background:var(--grain-paper),var(--rule),linear-gradient(270deg,rgba(94,74,54,.09),rgba(94,74,54,0) 12%),linear-gradient(180deg,#F9F1DE,#F3E8D2);
   box-shadow:0 16px 32px -14px rgba(70,52,36,.45);}
-/* 넘어가는 종이 앞면에 복사된 페이지: 실제 페이지와 똑같은 자리·크기로 */
 .flip-face .paper{position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;border-radius:inherit;box-shadow:none;pointer-events:none;}
 .flip-face .paper::after{display:none;}   /* 마스킹 테이프는 실제 페이지 것만 */
 .flip-shade{position:absolute;inset:0;z-index:10;opacity:0;background:linear-gradient(90deg,rgba(70,55,42,0) 30%,rgba(70,55,42,.2));}
@@ -539,7 +515,6 @@ button{cursor:pointer;font-family:var(--body);-webkit-tap-highlight-color:transp
 .chat-form input:focus{border-color:rgba(161,90,102,.6);}
 .chat-form button{flex-shrink:0;border:none;border-radius:999px;padding:0 16px;background:var(--rose-deep);font-size:15px;font-weight:600;color:#FFF7F0;}
 .chat-form :disabled{opacity:.5;cursor:default;}
-/* 새 메시지 알림: 컴퓨터는 오른쪽 아래, 손가락으로 쓰는 기기(휴대폰·태블릿)는 화면 위 */
 .chat-toast{position:fixed;z-index:9500;right:20px;bottom:20px;width:min(320px,calc(100vw - 32px));display:flex;flex-direction:column;gap:2px;padding:11px 16px;text-align:left;
   border:1px solid rgba(161,90,102,.3);border-radius:14px;background:var(--paper2);box-shadow:0 10px 24px -12px rgba(46,41,37,.45);font-family:var(--body);color:var(--ink);
   visibility:hidden;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s,visibility .2s;}
@@ -556,7 +531,6 @@ button{cursor:pointer;font-family:var(--body);-webkit-tap-highlight-color:transp
   .chat-msg p{font-size:14.5px;}
 }
 
-/* 처음 한 번 뜨는 "알림을 켤까요?" 창: 아이폰 알림창처럼 반투명 회색에 둥근 모서리 */
 .push-ask{position:fixed;inset:0;z-index:9600;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.28);font-family:var(--body);}
 .push-ask-card{width:min(280px,100%);border-radius:16px;overflow:hidden;outline:none;text-align:center;color:#1C1C1E;
   background:rgba(236,236,240,.88);-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);}
@@ -924,7 +898,7 @@ document.getElementById('cover-year').textContent=now.getFullYear()+' DIARY';
 document.getElementById('today-date').textContent=now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일';
 
 // ===== 캘린더 =====
-var CAL_MIN=2000,CAL_MAX=2040;   // 볼 수 있는 연도 범위
+var CAL_MIN=2000,CAL_MAX=2040;
 var CAL_MONTHS_EN=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
 var CAL_DOW_KO=['일','월','화','수','목','금','토'];
 var calYear,calMonth;
@@ -977,7 +951,6 @@ function calToday(){var n=new Date();calGo(n.getFullYear(),n.getMonth());}
 
 // ===== 사진 (날짜 칸에 붙이기) =====
 // 파일은 Storage 'photos' 버킷의 {커플id}/... 에 올리고, 정보는 photos 표에 저장.
-// 버킷이 비공개라 보여줄 때는 1시간짜리 서명 주소를 받아서 씀.
 var monthPhotos={};     // {'YYYY-MM-DD': [{id,storage_path,uploader_id,url}, ...]} 지금 보는 달
 var monthMoods={};      // {'YYYY-MM-DD': {user_id: {id, shape, color}}} 지금 보는 달 (entries 표)
 var photoUrlCache={};   // storage_path → {url, exp}
@@ -1633,10 +1606,8 @@ async function deleteAlbum(){
   var n=albumCounts[openAlbum.id]||0;
   if(n>0){alert('안에 사진이 '+n+'장 있어요.\n사진은 한 장씩만 뗄 수 있어서, 먼저 사진을 다 뗀 뒤에 앨범을 지울 수 있어요.');return;}   // 한 번에 여러 장이 지워지는 길은 막아 둠
   if(!await askConfirm("'"+openAlbum.title+"' 앨범이 지워져. 되돌릴 수 없어.")) return;
-  var paths=[];
   var d=await sb.from('albums').delete().eq('id',openAlbum.id);
   if(d.error){alert(d.error.code==='23503'?'안에 사진이 남아 있어서 지울 수 없어요.':'지우지 못했어요. 다시 해주세요.');return;}   // 23503: 사진이 든 앨범은 DB가 거절
-  if(paths.length) sb.storage.from('photos').remove(paths).then(function(r){if(r.error)console.error('remove files:',r.error);});
   openAlbum=null;albumPhotos=[];hideAlbumView();
   try{await loadAlbums();}catch(e){console.error(e);}
 }
@@ -2190,11 +2161,9 @@ function copyInvite(el){
 // 탈퇴: 내 계정과 내가 쓴 기록·사진이 지워짐. 짝꿍 기록은 남고, 짝꿍은 새 초대 코드를 받음.
 async function deleteAccount(){
   if(!sb||!me) return;
-  var typed=prompt('정말 탈퇴할까요?\n내 계정과 내가 쓴 기록·사진이 모두 지워지고 되돌릴 수 없어요.\n'
-    +(partner?'짝꿍의 기록은 남고, 짝꿍은 새 초대 코드로 다른 사람을 초대할 수 있어요.\n':'')
-    +'\n계속하려면 "탈퇴"라고 입력해 주세요.');
-  if(typed===null) return;
-  if(typed.trim()!=='탈퇴'){alert('"탈퇴"라고 정확히 입력해야 진행돼요.');return;}
+  // prompt 대신 확인 카드: 컴퓨터용 앱(Electron)은 prompt 를 지원하지 않음
+  if(!await askConfirm('내 계정과 내가 쓴 기록·사진이 모두 지워지고 되돌릴 수 없어요.'
+    +(partner?' 짝꿍의 기록은 남고, 짝꿍은 새 초대 코드로 다른 사람을 초대할 수 있어요.':''),'정말 탈퇴할까요?')) return;
   try{
     if(couple){   // 내가 올린 사진 파일부터 지움 (DB 행은 서버 함수가 지움)
       var ph=await sb.from('photos').select('storage_path').eq('uploader_id',me.id);
