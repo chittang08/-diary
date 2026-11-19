@@ -349,7 +349,7 @@ body.cover-on{overflow:hidden;}
 .mood-partner{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:10px;font-family:var(--hand);font-size:14px;color:var(--ink2);}
 .mood-partner svg{width:24px;height:24px;}
 .cal-moods{position:absolute;top:3px;right:3px;z-index:2;display:flex;flex-direction:column;gap:1px;pointer-events:none;}
-.cal-moods svg{display:block;width:19px;height:19px;filter:drop-shadow(0 0 1.5px #FFFCF4);}
+.cal-moods svg{display:block;width:27px;height:27px;filter:drop-shadow(0 0 1.5px #FFFCF4);}
 .cal-moods path[fill-opacity],.mood-partner path[fill-opacity]{fill-opacity:.8;}   /* 작게 그리면 빗금이 뭉개져 색이 흐려지니 바탕색을 진하게 */
 .day-photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px;margin-bottom:14px;}
 .day-photos:empty{display:none;}
@@ -408,8 +408,8 @@ body.cover-on{overflow:hidden;}
   .day-card{padding:22px 16px 18px;}
   .day-title{font-size:22px;}
   .day-photos{gap:10px 8px;}
-  .cal-moods{top:2px;right:2px;}
-  .cal-moods svg{width:14px;height:14px;}
+  .cal-moods{top:auto;right:auto;left:1px;bottom:1px;flex-direction:row;gap:0;}   /* 좁은 칸에선 날짜 숫자(위)와 안 겹치게 아래에 나란히 */
+  .cal-moods svg{width:16px;height:16px;}
   .mood-shape{padding:5px;}
   .mood-colors{gap:9px;}
 }
@@ -1066,7 +1066,9 @@ function renderDaySheet(){
   var d=calParse(openDayKey);
   document.getElementById('day-title').textContent=d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+CAL_DOW_KO[d.getDay()]+')';
   var list=monthPhotos[openDayKey]||[];
-  document.getElementById('day-sub').textContent=list.length?'사진 '+list.length+'장':'아직 붙인 사진이 없어요';
+  // shortcut: 지난 날짜 중 빈 날에 사진 붙이기는 유료 플랜용으로 화면에서만 막음, 유료 플랜을 만들 때 DB 규칙(photos insert)에도 넣기
+  var locked=openDayKey<calKey(new Date())&&!list.length;
+  document.getElementById('day-sub').textContent=list.length?'사진 '+list.length+'장':locked?'지난 날이라 사진은 붙일 수 없어요':'아직 붙인 사진이 없어요';
   var wrap=document.getElementById('day-photos');
   wrap.innerHTML='';
   list.forEach(function(p,i){
@@ -1088,7 +1090,7 @@ function renderDaySheet(){
     wrap.appendChild(fig);
   });
   var add=document.getElementById('day-add');
-  add.hidden=!(me&&couple);
+  add.hidden=!(me&&couple)||locked;
   renderMood();
 }
 document.getElementById('day-sheet').addEventListener('click',function(e){if(e.target===this) closeDay();});
