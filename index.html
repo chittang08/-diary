@@ -929,6 +929,8 @@ var CAL_MONTHS_EN=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUG
 var CAL_DOW_KO=['일','월','화','수','목','금','토'];
 var calYear,calMonth;
 function calKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+// 지난 날 잠금 기준: 한국 시간 '어제'(이날 전은 잠김). 하루 여유를 줘서 해외에 있어도 자기 오늘은 붙일 수 있음. DB 규칙(kst_today() - 1)과 같은 기준
+function lockBefore(){return new Date(Date.now()+(9-24)*3600e3).toISOString().slice(0,10);}
 function calParse(key){var p=key.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
 // 한 달 달력을 그림. 앞뒤 달의 날짜는 흐리게 채워 넣어 7칸 줄을 맞춤
 function buildCalendar(y,m){
@@ -991,8 +993,9 @@ async function signPaths(paths){
   (r.data||[]).forEach(function(x){if(x.signedUrl&&x.path) photoUrlCache[x.path]={url:x.signedUrl,exp:Date.now()+SIGN_SECS*1000};});
 }
 async function loadMonthPhotos(){
-  monthPhotos={};monthMoods={};
-  if(!sb||!me||!couple){renderMonthPhotos();if(openDayKey)renderDaySheet();return;}
+  if(!sb||!me||!couple){monthPhotos={};monthMoods={};renderMonthPhotos();if(openDayKey)renderDaySheet();return;}
+  // 지역 그릇에 다 담은 뒤 한 번에 바꿔 끼움 (시작할 때 불러오기가 두 번 겹쳐도 사진이 두 번 담기지 않게)
+  var y=calYear,mo=calMonth,photos={},moods={};
   var first=calKey(new Date(calYear,calMonth,1)),last=calKey(new Date(calYear,calMonth+1,0));
   var qs=await Promise.all([
     sb.from('photos').select('id,storage_path,taken_on,uploader_id,caption')
@@ -1006,13 +1009,15 @@ async function loadMonthPhotos(){
   if(qs[1].error) throw qs[1].error;
   qs[1].data.forEach(function(e){
     var m=parseMood(e.mood)||{};
-    (monthMoods[e.entry_date]=monthMoods[e.entry_date]||{})[e.author_id]={id:e.id,shape:m.shape||null,color:m.color||null};
+    (moods[e.entry_date]=moods[e.entry_date]||{})[e.author_id]={id:e.id,shape:m.shape||null,color:m.color||null};
   });
   await signPaths(r.data.map(function(p){return p.storage_path;}));
   r.data.forEach(function(p){
     p.url=(photoUrlCache[p.storage_path]||{}).url;
-    (monthPhotos[p.taken_on]=monthPhotos[p.taken_on]||[]).push(p);
+    (photos[p.taken_on]=photos[p.taken_on]||[]).push(p);
   });
+  if(y!==calYear||mo!==calMonth) return;   // 그사이 다른 달로 넘겼으면 버림
+  monthPhotos=photos;monthMoods=moods;
   renderMonthPhotos();
   if(openDayKey) renderDaySheet();
 }
@@ -1074,8 +1079,8 @@ function renderDaySheet(){
   var d=calParse(openDayKey);
   document.getElementById('day-title').textContent=d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+CAL_DOW_KO[d.getDay()]+')';
   var list=monthPhotos[openDayKey]||[];
-  // 지난 날짜 중 빈 날에 사진 붙이기는 유료 플랜용으로 막음 (DB 규칙 "photos: 내가 올리기"에서도 막음, 오늘 = 한국 시간)
-  var locked=openDayKey<calKey(new Date())&&!list.length;
+  // 지난 날짜 중 빈 날에 사진 붙이기는 유료 플랜용으로 막음 (DB 규칙 "photos: 내가 올리기"에서도 막음)
+  var locked=openDayKey<lockBefore()&&!list.length;
   document.getElementById('day-sub').textContent=list.length?'사진 '+list.length+'장':locked?'지난 날이라 사진은 붙일 수 없어요':'아직 붙인 사진이 없어요';
   var wrap=document.getElementById('day-photos');
   wrap.innerHTML='';
@@ -1129,7 +1134,7 @@ function renderMood(){
   box.hidden=!(me&&couple&&openDayKey);
   if(box.hidden) return;
   var key=openDayKey,mine=moodOf(key,me.id)||{},today=calKey(new Date());
-  var past=key<today;   // 지난 날 기분은 보기만 (유료 플랜용, DB 트리거 entries_mood_today_only 에서도 막음)
+  var past=key<lockBefore();   // 지난 날 기분은 보기만 (유료 플랜용, DB 트리거 entries_mood_today_only 에서도 막음)
   document.getElementById('mood-label').textContent=key===today?'오늘의 기분':'이날의 기분';
   var shapes=document.getElementById('mood-shapes'),colors=document.getElementById('mood-colors');
   shapes.hidden=colors.hidden=past;
@@ -1291,13 +1296,14 @@ var placing=null;      // 지금 배치 중인 사진 {mode:'new'|'edit', el, x,
 var albumQueue=[];     // 여러 장을 골랐을 때 한 장씩 차례로 배치
 
 async function loadAlbums(){
-  albums=[];albumCounts={};
-  if(!sb||!me||!couple){renderShelf();if(openAlbum)closeAlbum(true);return;}
+  if(!sb||!me||!couple){albums=[];albumCounts={};renderShelf();if(openAlbum)closeAlbum(true);return;}
   var r=await sb.from('albums').select('id,title,cover,sort,created_at').eq('couple_id',couple.id).order('sort').order('created_at');
   if(r.error) throw r.error;
-  albums=r.data||[];
   var c=await sb.from('photos').select('album_id').eq('couple_id',couple.id).not('album_id','is',null);
-  (c.data||[]).forEach(function(p){albumCounts[p.album_id]=(albumCounts[p.album_id]||0)+1;});
+  if(c.error) throw c.error;
+  var counts={};   // 다 센 뒤 한 번에 바꿔 끼움 (불러오기가 겹쳐도 두 번 세지 않게)
+  c.data.forEach(function(p){counts[p.album_id]=(counts[p.album_id]||0)+1;});
+  albums=r.data||[];albumCounts=counts;
   renderShelf();
   if(openAlbum){
     var still=albums.filter(function(a){return a.id===openAlbum.id;})[0];
@@ -1629,7 +1635,7 @@ async function deleteAlbum(){
   if(!await askConfirm("'"+openAlbum.title+"' 앨범이 지워져. 되돌릴 수 없어.")) return;
   var paths=[];
   var d=await sb.from('albums').delete().eq('id',openAlbum.id);
-  if(d.error){alert('지우지 못했어요. 다시 해주세요.');return;}
+  if(d.error){alert(d.error.code==='23503'?'안에 사진이 남아 있어서 지울 수 없어요.':'지우지 못했어요. 다시 해주세요.');return;}   // 23503: 사진이 든 앨범은 DB가 거절
   if(paths.length) sb.storage.from('photos').remove(paths).then(function(r){if(r.error)console.error('remove files:',r.error);});
   openAlbum=null;albumPhotos=[];hideAlbumView();
   try{await loadAlbums();}catch(e){console.error(e);}

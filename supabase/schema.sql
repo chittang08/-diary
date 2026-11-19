@@ -100,7 +100,7 @@ create table public.photos (
   caption       text check (caption is null or char_length(caption) <= 200),
   taken_on      date not null default current_date,
   -- 앨범에 붙인 사진이면: 어느 앨범에, 어디에(페이지 너비 기준 비율), 몇 도 기울여서
-  album_id      uuid references public.albums(id) on delete cascade,
+  album_id      uuid references public.albums(id),   -- 사진이 든 앨범은 못 지움 (커플을 통째로 지울 때는 사진도 같이 지워져서 괜찮음)
   pos_x         real check (pos_x is null or (pos_x >= 0 and pos_x <= 1)),
   pos_y         real check (pos_y is null or (pos_y >= 0 and pos_y <= 20)),
   rot           real not null default 0 check (rot between -45 and 45),
@@ -151,7 +151,7 @@ as $$
   select couple_id from public.couple_members where user_id = auth.uid()
 $$;
 
--- '오늘'은 한국 시간 기준 (서버 시계는 UTC). 지난 날 잠금 규칙에서 씀
+-- '오늘'은 한국 시간 기준 (서버 시계는 UTC). 지난 날 잠금 규칙은 kst_today() - 1 (한국 시간 어제까지 허용, 해외 시차 포함)
 create or replace function public.kst_today()
 returns date
 language sql stable set search_path = public
@@ -189,14 +189,14 @@ create trigger entries_touch_updated_at
   before update on public.entries
   for each row execute function public.touch_updated_at();
 
--- 지난 날의 기분은 붙이거나 바꿀 수 없음 (유료 플랜용). 한 줄 기록(content)은 상관없음
+-- 지난 날의 기분은 붙이거나 바꿀 수 없음 (유료 플랜용, 한국 시간 어제까지는 허용). 한 줄 기록(content)은 상관없음
 create or replace function public.entries_mood_today_only()
 returns trigger
 language plpgsql set search_path = public
 as $$
 begin
   if new.mood is distinct from (case when tg_op = 'UPDATE' then old.mood end)
-     and new.entry_date < public.kst_today() then
+     and new.entry_date < public.kst_today() - 1 then
     raise exception '지난 날의 기분은 바꿀 수 없어요' using errcode = '42501';
   end if;
   return new;
@@ -514,8 +514,8 @@ create policy "photos: 내가 올리기" on public.photos
     and storage_path like public.my_couple_id()::text || '/%'
     and (entry_id is null or exists (select 1 from public.entries e where e.id = entry_id and e.couple_id = public.my_couple_id()))
     and (album_id is null or exists (select 1 from public.albums a where a.id = album_id and a.couple_id = public.my_couple_id()))
-    -- 지난 날짜 중 빈 날에 캘린더 사진 붙이기는 막음 (유료 플랜용). 앨범 사진·이미 사진이 있는 날은 그대로
-    and (album_id is not null or taken_on >= public.kst_today()
+    -- 지난 날짜 중 빈 날에 캘린더 사진 붙이기는 막음 (유료 플랜용, 한국 시간 어제까지는 허용). 앨범 사진·이미 사진이 있는 날은 그대로
+    and (album_id is not null or taken_on >= public.kst_today() - 1
          or exists (select 1 from public.photos p where p.couple_id = photos.couple_id and p.taken_on = photos.taken_on and p.album_id is null))
   );
 create policy "photos: 내 사진 수정" on public.photos
