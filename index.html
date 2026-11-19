@@ -333,6 +333,24 @@ body.cover-on{overflow:hidden;}
 .day-close:hover{color:var(--rose-deep);background:rgba(246,201,210,.45);}
 .day-title{font-family:var(--hand);font-size:26px;font-weight:700;color:var(--ink);line-height:1.2;padding-right:36px;}
 .day-sub{font-family:var(--hand);font-size:14px;color:var(--ink3);margin:3px 0 14px;}
+/* 그날의 기분: 연필로 그린 모양 4개 + 색연필 다섯 색 */
+.mood{margin:0 0 16px;padding:10px 12px 12px;border:1.2px dashed rgba(94,74,54,.28);border-radius:10px;background:rgba(255,255,255,.35);}
+.mood-label{font-family:var(--hand);font-size:15px;color:var(--ink2);}
+.mood-shapes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-width:320px;margin:4px auto 0;}
+.mood-shape{aspect-ratio:1;border:none;background:none;border-radius:14px;padding:7px;transition:transform .15s,background .15s,opacity .15s;-webkit-tap-highlight-color:transparent;}
+.mood-shape svg{display:block;width:100%;height:100%;}
+.mood-shape:hover{transform:rotate(-4deg) scale(1.05);}
+.mood-shape[aria-pressed="true"]{background:rgba(247,219,132,.4);transform:rotate(-3deg);}   /* 형광펜으로 표시한 듯 */
+.mood-shapes.has-pick .mood-shape:not([aria-pressed="true"]){opacity:.42;}
+.mood-colors{display:flex;justify-content:center;gap:12px;margin-top:8px;}
+.mood-color{width:34px;height:26px;padding:0;border:1.4px solid rgba(60,50,40,.55);border-radius:4px 7px 3px 6px;background:var(--grain-paper),var(--c);transform:rotate(-2deg);transition:transform .12s,box-shadow .12s;}
+.mood-color:nth-child(even){transform:rotate(2deg);}
+.mood-color[aria-pressed="true"]{box-shadow:0 0 0 2px #FFFCF4,0 0 0 3.6px var(--ink);transform:rotate(0) scale(1.08);}
+.mood-partner{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:10px;font-family:var(--hand);font-size:14px;color:var(--ink3);}
+.mood-partner svg{width:24px;height:24px;}
+.cal-moods{position:absolute;top:3px;right:3px;z-index:2;display:flex;flex-direction:column;gap:1px;pointer-events:none;}
+.cal-moods svg{display:block;width:19px;height:19px;filter:drop-shadow(0 0 1.5px #FFFCF4);}
+.cal-moods path[fill-opacity],.mood-partner path[fill-opacity]{fill-opacity:.8;}   /* 작게 그리면 빗금이 뭉개져 색이 흐려지니 바탕색을 진하게 */
 .day-photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px;margin-bottom:14px;}
 .day-photos:empty{display:none;}
 .day-photo{position:relative;margin:0;padding:7px 7px 26px;background:#FFFEFB;border-radius:1px;
@@ -390,6 +408,10 @@ body.cover-on{overflow:hidden;}
   .day-card{padding:22px 16px 18px;}
   .day-title{font-size:22px;}
   .day-photos{gap:10px 8px;}
+  .cal-moods{top:2px;right:2px;}
+  .cal-moods svg{width:14px;height:14px;}
+  .mood-shape{padding:5px;}
+  .mood-colors{gap:9px;}
 }
 /* ===== 사진첩 (앨범 책장 · 앨범 페이지) ===== */
 .album-panel{padding:18px 18px 20px;}   /* 종이 질감은 위 .calendar,.album-panel 공통 규칙 */
@@ -736,6 +758,12 @@ else if(new URLSearchParams(location.search).has('shell')){
     <button type="button" class="day-close" onclick="closeDay()" aria-label="닫기">✕</button>
     <div class="day-title" id="day-title"></div>
     <div class="day-sub" id="day-sub"></div>
+    <div class="mood" id="day-mood">
+      <div class="mood-label" id="mood-label">오늘의 기분</div>
+      <div class="mood-shapes" id="mood-shapes"></div>
+      <div class="mood-colors" id="mood-colors"></div>
+      <div class="mood-partner" id="mood-partner" hidden></div>
+    </div>
     <div class="day-photos" id="day-photos"></div>
     <label class="day-add" id="day-add">
       <input type="file" id="day-file" accept="image/*" multiple hidden>
@@ -744,6 +772,20 @@ else if(new URLSearchParams(location.search).has('shell')){
     <div class="day-msg" id="day-msg"></div>
   </div>
 </div>
+<!-- 기분 모양용: 연필 선(떨림 + 종이 결에 걸리는 흑연 알갱이)과 색연필 빗금 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <filter id="pencil" x="-15%" y="-15%" width="130%" height="130%">
+    <feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="2" seed="4" result="wob"/>
+    <feDisplacementMap in="SourceGraphic" in2="wob" scale="2.4" xChannelSelector="R" yChannelSelector="G" result="shaky"/>
+    <feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="1" seed="9" result="grain"/>
+    <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.4 0 0 0 1.75" result="holes"/>
+    <feComposite in="shaky" in2="holes" operator="in"/>
+  </filter>
+  <pattern id="hatch-lines" patternUnits="userSpaceOnUse" width="2.6" height="2.6" patternTransform="rotate(-35)">
+    <line x1="0" y1="0" x2="0" y2="2.6" stroke="#fff" stroke-width="1.5"/>
+  </pattern>
+  <mask id="hatch"><rect x="-5" y="-5" width="50" height="50" fill="url(#hatch-lines)"/></mask>
+</svg>
 <!-- 새 앨범 만들기 -->
 <div id="album-new" class="day-sheet" hidden>
   <div class="day-card" role="dialog" aria-labelledby="album-new-title-h">
@@ -927,6 +969,7 @@ function calToday(){var n=new Date();calGo(n.getFullYear(),n.getMonth());}
 // 파일은 Storage 'photos' 버킷의 {커플id}/... 에 올리고, 정보는 photos 표에 저장.
 // 버킷이 비공개라 보여줄 때는 1시간짜리 서명 주소를 받아서 씀.
 var monthPhotos={};     // {'YYYY-MM-DD': [{id,storage_path,uploader_id,url}, ...]} 지금 보는 달
+var monthMoods={};      // {'YYYY-MM-DD': {user_id: {id, shape, color}}} 지금 보는 달 (entries 표)
 var photoUrlCache={};   // storage_path → {url, exp}
 var SIGN_SECS=7*24*3600;   // 열람 주소 유효 기간 (7일). 화면에 돌아오거나 당겨서 새로고침하면 어차피 새로 받음
 var openDayKey=null;
@@ -940,13 +983,23 @@ async function signPaths(paths){
   (r.data||[]).forEach(function(x){if(x.signedUrl&&x.path) photoUrlCache[x.path]={url:x.signedUrl,exp:Date.now()+SIGN_SECS*1000};});
 }
 async function loadMonthPhotos(){
-  monthPhotos={};
+  monthPhotos={};monthMoods={};
   if(!sb||!me||!couple){renderMonthPhotos();if(openDayKey)renderDaySheet();return;}
   var first=calKey(new Date(calYear,calMonth,1)),last=calKey(new Date(calYear,calMonth+1,0));
-  var r=await sb.from('photos').select('id,storage_path,taken_on,uploader_id,caption')
-    .eq('couple_id',couple.id).is('album_id',null)   // 앨범 사진은 사진첩에서만
-    .gte('taken_on',first).lte('taken_on',last).order('created_at');
+  var qs=await Promise.all([
+    sb.from('photos').select('id,storage_path,taken_on,uploader_id,caption')
+      .eq('couple_id',couple.id).is('album_id',null)   // 앨범 사진은 사진첩에서만
+      .gte('taken_on',first).lte('taken_on',last).order('created_at'),
+    sb.from('entries').select('id,author_id,entry_date,mood')
+      .eq('couple_id',couple.id).gte('entry_date',first).lte('entry_date',last)
+  ]);
+  var r=qs[0];
   if(r.error) throw r.error;
+  if(qs[1].error) throw qs[1].error;
+  qs[1].data.forEach(function(e){
+    var m=parseMood(e.mood)||{};
+    (monthMoods[e.entry_date]=monthMoods[e.entry_date]||{})[e.author_id]={id:e.id,shape:m.shape||null,color:m.color||null};
+  });
   await signPaths(r.data.map(function(p){return p.storage_path;}));
   r.data.forEach(function(p){
     p.url=(photoUrlCache[p.storage_path]||{}).url;
@@ -958,8 +1011,15 @@ async function loadMonthPhotos(){
 // 달력 칸 안에 그날 첫 사진을 깔고, 여러 장이면 장수를 표시
 function renderMonthPhotos(){
   document.querySelectorAll('#cal-grid .cal-day').forEach(function(cell){
-    cell.querySelectorAll('.cal-pola,.cal-count').forEach(function(x){x.remove();});
+    cell.querySelectorAll('.cal-pola,.cal-count,.cal-moods').forEach(function(x){x.remove();});
     if(cell.classList.contains('other')) return;   // 앞뒤 달 날짜는 틀도 없이 흐리게만
+    var moods=[moodOf(cell.dataset.date,me&&me.id),moodOf(cell.dataset.date,partner&&partner.id)].filter(function(x){return x&&x.shape;});
+    if(moods.length){
+      var mm=document.createElement('span');
+      mm.className='cal-moods';
+      mm.innerHTML=moods.map(function(x){return moodSvg(x.shape,x.color);}).join('');
+      cell.appendChild(mm);
+    }
     var list=monthPhotos[cell.dataset.date]||[];
     var first=list.filter(function(p){return p.url;})[0];
     cell.classList.toggle('has-photo',!!first);
@@ -990,6 +1050,8 @@ function nickOf(uid){
 }
 function openDay(key){
   openDayKey=key;
+  var mine=moodOf(key,me&&me.id);
+  moodColor=mine&&mine.color||null;
   renderDaySheet();
   document.getElementById('day-sheet').hidden=false;
 }
@@ -1027,8 +1089,76 @@ function renderDaySheet(){
   });
   var add=document.getElementById('day-add');
   add.hidden=!(me&&couple);
+  renderMood();
 }
 document.getElementById('day-sheet').addEventListener('click',function(e){if(e.target===this) closeDay();});
+
+// --- 그날의 기분: 모양(하트·별·세모·동그라미) + 색(빨주노초파). entries.mood 에 'heart:red' 처럼 저장, 한 사람당 하루 하나 ---
+var MOOD_SHAPES={
+  heart:['하트','M20 34C8 25 3 17 6 11C9 5 17 5 20 12C23 5 31 5 34 11C37 17 32 25 20 34Z'],
+  star:['별','M20 5.5L23.8 15.7L34.3 16.4L26.2 23L28.8 33.4L20 27.6L11.2 33.4L13.8 23L5.7 16.4L16.2 15.7Z'],
+  triangle:['세모','M20.5 6L35 32.5L5.5 33.5Z'],
+  circle:['동그라미','M21 6.2C29.5 6 34.6 12.5 34 20.6C33.4 29 27 34.4 19.6 34C11.2 33.6 5.6 27.4 6 19.6C6.4 11.8 12 6.4 20 6.5']
+};
+var MOOD_COLORS={red:['빨강','#E2574C'],orange:['주황','#EF9440'],yellow:['노랑','#F2C93E'],green:['초록','#5DAE5B'],blue:['파랑','#4F86D4']};
+var moodColor=null,moodQueue=Promise.resolve();
+// 저장된 글자를 정해진 모양·색으로만 읽음 (모르는 값은 무시 → 화면에 그대로 끼워 넣어도 안전)
+function parseMood(s){var p=String(s||'').split(':');return MOOD_SHAPES.hasOwnProperty(p[0])?{shape:p[0],color:MOOD_COLORS.hasOwnProperty(p[1])?p[1]:null}:null;}
+function moodOf(key,uid){var d=monthMoods[key];return uid&&d&&d[uid]||null;}
+// 색연필 빗금 + 연한 바탕 위에 흑연 선을 두 번 겹쳐 그림 (손으로 다시 그은 느낌)
+function moodSvg(shape,color){
+  var d=MOOD_SHAPES[shape][1],c=color&&MOOD_COLORS[color][1];
+  return '<svg viewBox="0 0 40 40" aria-hidden="true"><g filter="url(#pencil)">'+
+    (c?'<path d="'+d+'" fill="'+c+'" fill-opacity=".28"/><path d="'+d+'" fill="'+c+'" mask="url(#hatch)"/>':'')+
+    '<path d="'+d+'" fill="none" stroke="#4A423B" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '<path d="'+d+'" fill="none" stroke="#4A423B" stroke-width=".7" stroke-opacity=".5" transform="rotate(2 20 20) translate(.6 -.4)"/>'+
+    '</g></svg>';
+}
+function renderMood(){
+  var box=document.getElementById('day-mood');
+  box.hidden=!(me&&couple&&openDayKey);
+  if(box.hidden) return;
+  var key=openDayKey,mine=moodOf(key,me.id)||{};
+  document.getElementById('mood-label').textContent=key===calKey(new Date())?'오늘의 기분':'이날의 기분';
+  var shapes=document.getElementById('mood-shapes');
+  shapes.classList.toggle('has-pick',!!mine.shape);
+  shapes.innerHTML=Object.keys(MOOD_SHAPES).map(function(s){
+    return '<button type="button" class="mood-shape" data-shape="'+s+'" aria-label="'+MOOD_SHAPES[s][0]+'" aria-pressed="'+(mine.shape===s)+'">'+moodSvg(s,moodColor)+'</button>';
+  }).join('');
+  document.getElementById('mood-colors').innerHTML=Object.keys(MOOD_COLORS).map(function(c){
+    return '<button type="button" class="mood-color" data-color="'+c+'" style="--c:'+MOOD_COLORS[c][1]+'" aria-label="'+MOOD_COLORS[c][0]+'" aria-pressed="'+(moodColor===c)+'"></button>';
+  }).join('');
+  var theirs=partner&&moodOf(key,partner.id),pl=document.getElementById('mood-partner');
+  pl.hidden=!(theirs&&theirs.shape);
+  if(!pl.hidden){pl.textContent=(partner.nickname||'짝꿍')+'의 기분';pl.insertAdjacentHTML('beforeend',moodSvg(theirs.shape,theirs.color));}
+}
+document.getElementById('day-mood').addEventListener('click',function(e){
+  var b=e.target.closest('button');
+  if(!b||!openDayKey||!me) return;
+  var mine=moodOf(openDayKey,me.id)||{};
+  if(b.dataset.color){moodColor=b.dataset.color;if(mine.shape) saveMood(mine.shape,moodColor);else renderMood();}
+  else if(b.dataset.shape) saveMood(mine.shape===b.dataset.shape?null:b.dataset.shape,moodColor);   // 고른 모양을 한 번 더 누르면 지움
+});
+// 화면엔 바로 반영하고, 저장은 차례대로 (빠르게 여러 번 눌러도 같은 날 줄이 두 개 생기지 않게)
+function saveMood(shape,color){
+  var key=openDayKey,mood=shape?shape+':'+(color||''):null;
+  var day=monthMoods[key]=monthMoods[key]||{},prev=day[me.id];
+  day[me.id]={id:prev&&prev.id,shape:shape,color:shape?color:null};
+  renderMood();renderMonthPhotos();
+  moodQueue=moodQueue.then(async function(){
+    var cur=moodOf(key,me.id),id=cur&&cur.id;
+    if(!id&&!mood) return;
+    // 지울 때도 줄은 남기고 mood 만 비움 (같은 줄에 쓰일 한 줄 기록을 날리지 않게)
+    var r=id?await sb.from('entries').update({mood:mood}).eq('id',id)
+            :await sb.from('entries').insert({couple_id:couple.id,entry_date:key,mood:mood}).select('id').single();
+    if(r.error) throw r.error;
+    if(!id&&cur) cur.id=r.data.id;
+  }).catch(function(err){
+    console.error('mood:',err);
+    setDayMsg('기분을 저장하지 못했어요. 다시 골라 주세요.');
+    return loadMonthPhotos().catch(function(){});
+  });
+}
 
 // --- 올리기 ---
 var MAX_EDGE=1600;   // 긴 변을 이 크기로 줄여서 올림 (용량 절약)

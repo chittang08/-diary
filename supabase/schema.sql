@@ -53,7 +53,7 @@ create table public.entries (
   author_id   uuid not null default auth.uid() references auth.users(id) on delete cascade,
   entry_date  date not null default current_date,
   content     text not null default '' check (char_length(content) <= 2000),
-  mood        text check (mood is null or char_length(mood) <= 20),
+  mood        text check (mood is null or char_length(mood) <= 20),   -- 날짜 창의 '그날의 기분': '모양:색' (예: heart:red). 화면은 정해진 값만 읽음
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
