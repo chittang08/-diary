@@ -310,7 +310,7 @@ body.cover-on{overflow:hidden;}
 .cal-day.today .cal-num{color:var(--rose-deep);font-weight:700;border:1.8px solid var(--rose);
   border-radius:52% 46% 50% 48%/46% 54% 46% 54%;transform:rotate(-5deg);}   /* 손으로 그린 동그라미 */
 /* 칸 안의 폴라로이드 한 장: 흰 테두리에 아래가 두꺼움. 사진이 없으면 빈 틀이 연하게 보임 */
-.cal-pola{position:absolute;left:50%;top:53%;width:84%;aspect-ratio:1/1.22;transform:translate(-50%,-50%) rotate(-1.5deg);
+.cal-pola{position:absolute;z-index:1;left:50%;top:53%;width:84%;aspect-ratio:1/1.22;transform:translate(-50%,-50%) rotate(-1.5deg);
   background:#FFFEFB;padding:6% 6% 0;border-radius:1px;
   box-shadow:0 2px 6px -2px rgba(60,45,30,.45),0 0 0 .5px rgba(94,74,54,.14);}
 .cal-pola img,.cal-pola-blank{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#E9E2D4;}
@@ -349,8 +349,15 @@ body.cover-on{overflow:hidden;}
 .mood-partner{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 16px;margin-top:10px;font-family:var(--hand);font-size:14px;color:var(--ink2);}
 .mood-partner span{display:inline-flex;align-items:center;gap:4px;}
 .mood-partner svg{width:24px;height:24px;}
-.cal-moods{position:absolute;top:3px;right:3px;z-index:2;display:flex;flex-direction:column;gap:1px;pointer-events:none;}
-.cal-moods svg{display:block;width:27px;height:27px;filter:drop-shadow(0 0 1.5px #FFFCF4);}
+/* 그날 기분: 사진(폴라로이드) 뒤에 크게 깔림. 둘 다 골랐으면 양옆으로 엇갈려 삐져나옴 */
+.cal-moods{position:absolute;inset:0;z-index:0;pointer-events:none;}
+.cal-moods svg{position:absolute;left:47%;top:46%;width:108%;height:auto;aspect-ratio:1;transform:translate(-50%,-50%) rotate(-7deg);}
+.cal-moods svg:first-child:not(:only-child){width:72%;transform:translate(-76%,-62%) rotate(-12deg);}
+.cal-moods svg:nth-child(2){width:72%;transform:translate(-24%,-36%) rotate(10deg);}
+/* 사진은 작게 오른쪽 아래로 비켜야 뒤의 도형 모양(하트 윗부분 등)이 읽힘 */
+.cal-day:has(.cal-moods) .cal-pola{width:50%;left:60%;top:63%;transform:translate(-50%,-50%) rotate(4deg);}
+.cal-day:has(.cal-moods) .cal-pola.empty{display:none;}   /* 사진 없는 날은 빈 틀 대신 도형만 */
+.cal-day:has(.cal-moods) .cal-num{background:rgba(255,253,245,.9);box-shadow:0 0 0 1px rgba(94,74,54,.08);}   /* 색 위에서도 날짜가 읽히게 */
 .cal-moods path[fill-opacity],.mood-partner path[fill-opacity]{fill-opacity:.8;}   /* 작게 그리면 빗금이 뭉개져 색이 흐려지니 바탕색을 진하게 */
 .day-photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px;margin-bottom:14px;}
 .day-photos:empty{display:none;}
@@ -403,14 +410,16 @@ body.cover-on{overflow:hidden;}
   .cal-dow{font-size:12.5px;padding-bottom:4px;}
   .cal-day{aspect-ratio:1/1.3;padding:4px 4px;font-size:13.5px;}
   .cal-pola{width:86%;top:54%;}
+  /* 좁은 칸: 날짜 동그라미 아래로 도형을 내리고, 장수 표시는 도형을 가려서 숨김(날짜를 누르면 다 보임) */
+  .cal-moods svg{top:60%;left:45%;width:104%;}
+  .cal-day:has(.cal-moods) .cal-pola{width:44%;left:70%;top:62%;}
+  .cal-day:has(.cal-moods) .cal-count{display:none;}
   .cal-num{min-width:20px;height:20px;margin:-3px -3px;}
   .cal-count{font-size:9.5px;padding:0 4px;right:2px;bottom:2px;}
   .day-sheet{padding:12px 10px;}
   .day-card{padding:22px 16px 18px;}
   .day-title{font-size:22px;}
   .day-photos{gap:10px 8px;}
-  .cal-moods{top:auto;right:auto;left:1px;bottom:1px;flex-direction:row;gap:0;}   /* 좁은 칸에선 날짜 숫자(위)와 안 겹치게 아래에 나란히 */
-  .cal-moods svg{width:16px;height:16px;}
   .mood-shape{padding:5px;}
   .mood-colors{gap:9px;}
 }
