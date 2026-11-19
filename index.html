@@ -346,7 +346,8 @@ body.cover-on{overflow:hidden;}
 .mood-color{width:34px;height:26px;padding:0;border:1.4px solid rgba(60,50,40,.55);border-radius:4px 7px 3px 6px;background:var(--grain-paper),var(--c);transform:rotate(-2deg);transition:transform .12s,box-shadow .12s;}
 .mood-color:nth-child(even){transform:rotate(2deg);}
 .mood-color[aria-pressed="true"]{box-shadow:0 0 0 2px #FFFCF4,0 0 0 3.6px var(--ink);transform:rotate(0) scale(1.08);}
-.mood-partner{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:10px;font-family:var(--hand);font-size:14px;color:var(--ink2);}
+.mood-partner{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 16px;margin-top:10px;font-family:var(--hand);font-size:14px;color:var(--ink2);}
+.mood-partner span{display:inline-flex;align-items:center;gap:4px;}
 .mood-partner svg{width:24px;height:24px;}
 .cal-moods{position:absolute;top:3px;right:3px;z-index:2;display:flex;flex-direction:column;gap:1px;pointer-events:none;}
 .cal-moods svg{display:block;width:27px;height:27px;filter:drop-shadow(0 0 1.5px #FFFCF4);}
@@ -1066,7 +1067,7 @@ function renderDaySheet(){
   var d=calParse(openDayKey);
   document.getElementById('day-title').textContent=d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+CAL_DOW_KO[d.getDay()]+')';
   var list=monthPhotos[openDayKey]||[];
-  // shortcut: 지난 날짜 중 빈 날에 사진 붙이기는 유료 플랜용으로 화면에서만 막음, 유료 플랜을 만들 때 DB 규칙(photos insert)에도 넣기
+  // 지난 날짜 중 빈 날에 사진 붙이기는 유료 플랜용으로 막음 (DB 규칙 "photos: 내가 올리기"에서도 막음, 오늘 = 한국 시간)
   var locked=openDayKey<calKey(new Date())&&!list.length;
   document.getElementById('day-sub').textContent=list.length?'사진 '+list.length+'장':locked?'지난 날이라 사진은 붙일 수 없어요':'아직 붙인 사진이 없어요';
   var wrap=document.getElementById('day-photos');
@@ -1120,19 +1121,32 @@ function renderMood(){
   var box=document.getElementById('day-mood');
   box.hidden=!(me&&couple&&openDayKey);
   if(box.hidden) return;
-  var key=openDayKey,mine=moodOf(key,me.id)||{};
-  document.getElementById('mood-label').textContent=key===calKey(new Date())?'오늘의 기분':'이날의 기분';
-  var shapes=document.getElementById('mood-shapes');
-  shapes.classList.toggle('has-pick',!!mine.shape);
-  shapes.innerHTML=Object.keys(MOOD_SHAPES).map(function(s){
-    return '<button type="button" class="mood-shape" data-shape="'+s+'" aria-label="'+MOOD_SHAPES[s][0]+'" aria-pressed="'+(mine.shape===s)+'">'+moodSvg(s,moodColor)+'</button>';
-  }).join('');
-  document.getElementById('mood-colors').innerHTML=Object.keys(MOOD_COLORS).map(function(c){
-    return '<button type="button" class="mood-color" data-color="'+c+'" style="--c:'+MOOD_COLORS[c][1]+'" aria-label="'+MOOD_COLORS[c][0]+'" aria-pressed="'+(moodColor===c)+'"></button>';
-  }).join('');
-  var theirs=partner&&moodOf(key,partner.id),pl=document.getElementById('mood-partner');
-  pl.hidden=!(theirs&&theirs.shape);
-  if(!pl.hidden){pl.textContent=(partner.nickname||'짝꿍')+'의 기분';pl.insertAdjacentHTML('beforeend',moodSvg(theirs.shape,theirs.color));}
+  var key=openDayKey,mine=moodOf(key,me.id)||{},today=calKey(new Date());
+  var past=key<today;   // 지난 날 기분은 보기만 (유료 플랜용, DB 트리거 entries_mood_today_only 에서도 막음)
+  document.getElementById('mood-label').textContent=key===today?'오늘의 기분':'이날의 기분';
+  var shapes=document.getElementById('mood-shapes'),colors=document.getElementById('mood-colors');
+  shapes.hidden=colors.hidden=past;
+  if(!past){
+    shapes.classList.toggle('has-pick',!!mine.shape);
+    shapes.innerHTML=Object.keys(MOOD_SHAPES).map(function(s){
+      return '<button type="button" class="mood-shape" data-shape="'+s+'" aria-label="'+MOOD_SHAPES[s][0]+'" aria-pressed="'+(mine.shape===s)+'">'+moodSvg(s,moodColor)+'</button>';
+    }).join('');
+    colors.innerHTML=Object.keys(MOOD_COLORS).map(function(c){
+      return '<button type="button" class="mood-color" data-color="'+c+'" style="--c:'+MOOD_COLORS[c][1]+'" aria-label="'+MOOD_COLORS[c][0]+'" aria-pressed="'+(moodColor===c)+'"></button>';
+    }).join('');
+  }
+  // 아래 줄: 지난 날이면 내 기분도, 짝꿍이 있으면 짝꿍 기분도 (이름은 textContent 로만 넣음)
+  var pl=document.getElementById('mood-partner');
+  pl.textContent='';
+  [[past&&mine,nickOf(me.id)],[partner&&moodOf(key,partner.id),partner&&(partner.nickname||'짝꿍')]].forEach(function(x){
+    if(!x[0]||!x[0].shape) return;
+    var s=document.createElement('span');
+    s.textContent=x[1]+'의 기분';
+    s.insertAdjacentHTML('beforeend',moodSvg(x[0].shape,x[0].color));
+    pl.appendChild(s);
+  });
+  if(past&&!mine.shape){var n=document.createElement('span');n.textContent='지난 날이라 기분은 붙일 수 없어요';pl.appendChild(n);}
+  pl.hidden=!pl.childNodes.length;
 }
 document.getElementById('day-mood').addEventListener('click',function(e){
   var b=e.target.closest('button');

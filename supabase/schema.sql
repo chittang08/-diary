@@ -151,6 +151,12 @@ as $$
   select couple_id from public.couple_members where user_id = auth.uid()
 $$;
 
+-- '오늘'은 한국 시간 기준 (서버 시계는 UTC). 지난 날 잠금 규칙에서 씀
+create or replace function public.kst_today()
+returns date
+language sql stable set search_path = public
+as $$ select (now() at time zone 'Asia/Seoul')::date $$;
+
 -- 가입하면 profiles 자동 생성 (닉네임은 20자까지, 없으면 이메일 앞부분)
 create or replace function public.handle_new_user()
 returns trigger
@@ -182,6 +188,24 @@ $$;
 create trigger entries_touch_updated_at
   before update on public.entries
   for each row execute function public.touch_updated_at();
+
+-- 지난 날의 기분은 붙이거나 바꿀 수 없음 (유료 플랜용). 한 줄 기록(content)은 상관없음
+create or replace function public.entries_mood_today_only()
+returns trigger
+language plpgsql set search_path = public
+as $$
+begin
+  if new.mood is distinct from (case when tg_op = 'UPDATE' then old.mood end)
+     and new.entry_date < public.kst_today() then
+    raise exception '지난 날의 기분은 바꿀 수 없어요' using errcode = '42501';
+  end if;
+  return new;
+end
+$$;
+
+create trigger entries_mood_today_only
+  before insert or update on public.entries
+  for each row execute function public.entries_mood_today_only();
 
 -- 초대 코드: 알파벳 2개(중복 허용) + 서로 다른 숫자 2개 + 서로 다른 알파벳 2개 (예: KK37BX)
 -- 예측할 수 없도록 암호학적 난수(gen_random_bytes) 사용
@@ -354,7 +378,7 @@ revoke update on public.couples, public.profiles, public.entries, public.photos,
 grant update (started_on)                  on public.couples            to authenticated;
 grant update (nickname)                    on public.profiles           to authenticated;
 grant update (content, mood)               on public.entries            to authenticated;
-grant update (caption, taken_on, entry_id, pos_x, pos_y, rot) on public.photos to authenticated;
+grant update (caption, entry_id, pos_x, pos_y, rot) on public.photos to authenticated;   -- taken_on 은 못 바꿈 (오늘로 올린 뒤 지난 빈 날로 옮겨 잠금을 피하지 못하게)
 grant update (title, cover, sort)          on public.albums             to authenticated;
 grant update (name, sort)                  on public.routines           to authenticated;
 grant update (p256dh, auth)                on public.push_subscriptions to authenticated;
@@ -375,10 +399,13 @@ grant  execute on function public.save_push_subscription(text, text, text) to au
 grant  execute on function public.create_couple()          to authenticated;
 grant  execute on function public.join_couple(text)        to authenticated;
 grant  execute on function public.my_couple_id()           to authenticated;   -- RLS 규칙 안에서 쓰임
+revoke execute on function public.kst_today()              from public, anon;
+grant  execute on function public.kst_today()              to authenticated;   -- RLS 규칙 안에서 쓰임
 grant  execute on function public.couple_check_days(date)  to authenticated;
 -- 트리거·기본값 전용 함수는 직접 못 부르게
 revoke execute on function public.handle_new_user()        from public, anon, authenticated;
 revoke execute on function public.touch_updated_at()       from public, anon, authenticated;
+revoke execute on function public.entries_mood_today_only() from public, anon, authenticated;
 revoke execute on function public.generate_invite_code()   from public, anon, authenticated;
 alter default privileges in schema public revoke execute on functions from public, anon;
 
@@ -487,6 +514,9 @@ create policy "photos: 내가 올리기" on public.photos
     and storage_path like public.my_couple_id()::text || '/%'
     and (entry_id is null or exists (select 1 from public.entries e where e.id = entry_id and e.couple_id = public.my_couple_id()))
     and (album_id is null or exists (select 1 from public.albums a where a.id = album_id and a.couple_id = public.my_couple_id()))
+    -- 지난 날짜 중 빈 날에 캘린더 사진 붙이기는 막음 (유료 플랜용). 앨범 사진·이미 사진이 있는 날은 그대로
+    and (album_id is not null or taken_on >= public.kst_today()
+         or exists (select 1 from public.photos p where p.couple_id = photos.couple_id and p.taken_on = photos.taken_on and p.album_id is null))
   );
 create policy "photos: 내 사진 수정" on public.photos
   for update to authenticated
