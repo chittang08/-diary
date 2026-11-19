@@ -821,6 +821,7 @@ else if(new URLSearchParams(location.search).has('shell')){
       <div class="gate-tabs">
         <button type="button" data-mode="login" class="on">로그인</button>
         <button type="button" data-mode="signup">처음이에요</button>
+        <button type="button" data-mode="solo">혼자할게요</button>
       </div>
       <form id="auth-form">
         <input id="auth-nick" type="text" placeholder="닉네임 (짝꿍에게 보일 이름)" maxlength="12" hidden>
@@ -1530,7 +1531,7 @@ function renderChat(){
   var box=document.getElementById('chat-msgs');
   box.textContent='';delete box.dataset.day;
   chatMsgs.forEach(chatAppend);
-  document.getElementById('chat-partner').textContent=partner?(partner.nickname||'짝꿍'):'짝꿍을 기다리는 중';
+  document.getElementById('chat-partner').textContent=partner?(partner.nickname||'짝꿍'):isSolo()?'혼자 쓰는 다이어리예요':'짝꿍을 기다리는 중';
   document.querySelectorAll('#chat-form input,#chat-form button').forEach(function(el){el.disabled=!partner;});
 }
 function chatListen(){
@@ -1850,6 +1851,7 @@ function renderGate(){
     showGateSection('gate-error');return;
   }
   if(!me){showGateSection('gate-auth');}
+  else if(!couple&&isSolo()){startSolo();return;}   // 혼자할게요로 가입: 연결 화면 없이 바로 내 다이어리를 만듦 (메일 인증 뒤 처음 로그인할 때도)
   else if(!couple){
     document.getElementById('gate-nick').textContent=(myProfile&&myProfile.nickname)||'';
     showGateSection('gate-couple');
@@ -1860,6 +1862,23 @@ function renderGate(){
   }
   else {justCreated=false;enterDiary();}   // 짝꿍이 들어오면 코드는 무효화되고 바로 다이어리로
   renderCoupleHeader();
+}
+
+function isSolo(){return !!(me&&me.user_metadata&&me.user_metadata.solo);}
+var soloCreating=false;
+async function startSolo(){
+  showGateSection('gate-loading');
+  if(soloCreating) return;   // 로그인 이벤트가 겹쳐 와도 다이어리는 하나만
+  soloCreating=true;
+  var r=await sb.rpc('create_couple');
+  soloCreating=false;
+  if(r.error){   // 실패하면 평소 연결 화면에서 직접 만들 수 있게
+    document.getElementById('gate-nick').textContent=(myProfile&&myProfile.nickname)||'';
+    showGateSection('gate-couple');
+    document.getElementById('couple-msg').textContent=r.error.message;
+    return;
+  }
+  await refreshSession({user:me});
 }
 
 // 로그인·가입·연결을 마치고 다이어리로 들어갈 때는 종이가 촤라락 넘어가며 열림
@@ -1878,7 +1897,7 @@ function renderCoupleHeader(){
   el.innerHTML='';
   if(partner){
     el.textContent='♥ '+myNick+' & '+(partner.nickname||'짝꿍');
-  } else if(couple.invite_code){
+  } else if(couple.invite_code&&!isSolo()){
     el.appendChild(document.createTextNode('짝꿍 기다리는 중 · 초대 코드 '));
     var code=document.createElement('span');
     code.className='code';code.title='눌러서 복사';
@@ -1938,10 +1957,11 @@ function koreanAuthError(err){
 function setAuthMode(mode){
   authMode=mode;
   document.querySelectorAll('.gate-tabs button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-mode')===mode);});
-  var nick=document.getElementById('auth-nick');
-  nick.hidden=mode!=='signup';nick.required=mode==='signup';
-  document.getElementById('auth-pw').autocomplete=mode==='signup'?'new-password':'current-password';
-  document.getElementById('auth-submit').textContent=mode==='signup'?'가입하기':'로그인';
+  var nick=document.getElementById('auth-nick'),isNew=mode!=='login';
+  nick.hidden=!isNew;nick.required=isNew;
+  nick.placeholder=mode==='solo'?'닉네임':'닉네임 (짝꿍에게 보일 이름)';
+  document.getElementById('auth-pw').autocomplete=isNew?'new-password':'current-password';
+  document.getElementById('auth-submit').textContent=mode==='solo'?'혼자 시작하기':isNew?'가입하기':'로그인';
   var msg=document.getElementById('auth-msg');msg.textContent='';msg.className='gate-msg';
 }
 document.querySelectorAll('.gate-tabs button').forEach(function(b){
@@ -1957,9 +1977,10 @@ document.getElementById('auth-form').addEventListener('submit',async function(e)
   msg.textContent='';msg.className='gate-msg';
   btn.disabled=true;
   try{
-    if(authMode==='signup'){
+    if(authMode!=='login'){
       var nick=document.getElementById('auth-nick').value.trim();
-      var r=await sb.auth.signUp({email:email,password:pw,options:{data:{nickname:nick},emailRedirectTo:location.origin+location.pathname}});
+      var meta=authMode==='solo'?{nickname:nick,solo:true}:{nickname:nick};
+      var r=await sb.auth.signUp({email:email,password:pw,options:{data:meta,emailRedirectTo:location.origin+location.pathname}});
       if(r.error) throw r.error;
       if(!r.data.session){
         msg.className='gate-msg ok';
